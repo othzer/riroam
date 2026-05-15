@@ -1,26 +1,159 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  RiRoam design system — "High-altitude light"
+  Light theme only (v1). Tokens from the design spec; shadcn's semantic
+  tokens are remapped onto this palette so its primitives render on-brand.
+*/
 
 @theme inline {
+  /* shadcn semantic tokens (remapped in :root below) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* RiRoam surfaces */
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sand: var(--sand);
+  --color-sand-deep: var(--sand-deep);
+  --color-border-soft: var(--border-soft);
+
+  /* ink (text) */
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+
+  /* pangong (interactive) */
+  --color-pangong: var(--pangong);
+  --color-pangong-deep: var(--pangong-deep);
+  --color-pangong-tint: var(--pangong-tint);
+
+  /* apricot (CTA only) */
+  --color-apricot: var(--apricot);
+  --color-apricot-hover: var(--apricot-hover);
+  --color-apricot-tint: var(--apricot-tint);
+  --color-apricot-text: var(--apricot-text);
+
+  /* semantic */
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-rating: var(--rating);
+
+  /* prayer-flag micro-palette (footer + empty-state motif only) */
+  --color-flag-blue: var(--flag-blue);
+  --color-flag-white: var(--flag-white);
+  --color-flag-red: var(--flag-red);
+  --color-flag-green: var(--flag-green);
+  --color-flag-yellow: var(--flag-yellow);
+
+  /* fonts */
+  --font-sans: var(--font-figtree);
+  --font-heading: var(--font-bricolage);
+  --font-mono: var(--font-plex-mono);
+
+  /* radii */
+  --radius-chip: 6px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* surfaces */
+  --paper: #f8f8f5; /* page background — whitewash */
+  --surface: #ffffff; /* cards */
+  --sand: #efeae0; /* soft fills, chips */
+  --sand-deep: #f5efe2; /* callouts */
+  --border: #e2ddd1; /* hairlines */
+  --border-soft: #f1ede3; /* row dividers */
+
+  /* ink (text) */
+  --ink: #182635; /* headings, body */
+  --ink-soft: #4a5a6a; /* secondary text */
+  --ink-muted: #8a94a0; /* meta, placeholders */
+
+  /* pangong — interactive */
+  --pangong: #0d6e8f; /* links, active states, icons */
+  --pangong-deep: #084f68; /* hover */
+  --pangong-tint: #dcebf1; /* selected fills, avatar bg */
+
+  /* apricot — CTA only */
+  --apricot: #e39129; /* primary button bg (text = --ink, NOT white) */
+  --apricot-hover: #d07f1b;
+  --apricot-tint: #f5e9ce; /* acclimatization shading */
+  --apricot-text: #9c6210; /* text on apricot tints */
+
+  /* semantic */
+  --success: #2f8659;
+  --success-tint: #e1f5ee;
+  --danger: #c43d2f;
+  --danger-tint: #fbeae8;
+  --rating: #ba7517; /* star color */
+
+  /* prayer-flag micro-palette */
+  --flag-blue: #2f6db4;
+  --flag-white: #ffffff;
+  --flag-red: #c43d2f;
+  --flag-green: #2f8659;
+  --flag-yellow: #e3b341;
+
+  /* shadcn semantic tokens → RiRoam palette */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--apricot); /* CTA */
+  --primary-foreground: var(--ink); /* ink on apricot, never white */
+  --secondary: var(--sand);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sand);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--pangong-tint);
+  --accent-foreground: var(--pangong-deep);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--pangong); /* focus rings */
+
+  --radius: 0.5rem; /* 8px controls */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-paper text-ink;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+  }
 }
