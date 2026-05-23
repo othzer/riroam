@@ -25,15 +25,19 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
 
   async function onSubmit(values: LoginInput) {
     setPending(true);
-    const res = await signIn("credentials", { ...values, redirect: false });
-    setPending(false);
-
-    if (res?.error) {
-      toast.error("Wrong email or password");
-      return;
+    try {
+      const res = await signIn("credentials", { ...values, redirect: false });
+      if (res?.error) {
+        toast.error("Wrong email or password");
+        return;
+      }
+      router.push(dest);
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong — try again");
+    } finally {
+      setPending(false);
     }
-    router.push(dest);
-    router.refresh();
   }
 
   return (

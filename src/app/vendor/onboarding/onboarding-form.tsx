@@ -73,27 +73,32 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
 
   async function onSubmit(input: OnboardingInput) {
     setPending(true);
-    const res = await submitVendorOnboarding(input);
-    setPending(false);
+    try {
+      const res = await submitVendorOnboarding(input);
 
-    if (!res.ok) {
-      if (res.fieldErrors) {
-        for (const [field, messages] of Object.entries(res.fieldErrors)) {
-          if (messages?.[0])
-            setError(field as FieldPath<OnboardingInput>, {
-              message: messages[0],
-            });
+      if (!res.ok) {
+        if (res.fieldErrors) {
+          for (const [field, messages] of Object.entries(res.fieldErrors)) {
+            if (messages?.[0])
+              setError(field as FieldPath<OnboardingInput>, {
+                message: messages[0],
+              });
+          }
         }
+        toast.error(res.error);
+        return;
       }
-      toast.error(res.error);
-      return;
-    }
 
-    toast.success(
-      isReapplying ? "Application resubmitted" : "Application submitted",
-    );
-    router.push("/vendor/dashboard");
-    router.refresh();
+      toast.success(
+        isReapplying ? "Application resubmitted" : "Application submitted",
+      );
+      router.push("/vendor/dashboard");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong — try again");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (

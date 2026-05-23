@@ -22,6 +22,20 @@ async function send(opts: { to: string; subject: string; html: string }) {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c] as string,
+  );
+}
+
 function layout(body: string) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:auto;color:#182635">
     <p style="font-weight:800;font-size:18px">RiRoam</p>
@@ -35,7 +49,7 @@ export async function sendVendorApprovedEmail(to: string, name: string) {
     to,
     subject: "You're verified on RiRoam",
     html: layout(
-      `<p>Hi ${name},</p>
+      `<p>Hi ${escapeHtml(name)},</p>
        <p>Your business has been approved. You can now publish listings and take bookings from your vendor dashboard.</p>`,
     ),
   });
@@ -50,9 +64,9 @@ export async function sendVendorRejectedEmail(
     to,
     subject: "Your RiRoam application needs changes",
     html: layout(
-      `<p>Hi ${name},</p>
+      `<p>Hi ${escapeHtml(name)},</p>
        <p>We couldn't approve your application yet:</p>
-       <p style="padding:12px;background:#FBEAE8;border-radius:8px">${reason}</p>
+       <p style="padding:12px;background:#FBEAE8;border-radius:8px">${escapeHtml(reason)}</p>
        <p>You can update your details and resubmit from your dashboard.</p>`,
     ),
   });
