@@ -11,14 +11,24 @@ export function slugify(input: string): string {
   );
 }
 
-/** Slugify a name and suffix `-2`, `-3`, … until the vendor slug is free. */
-export async function uniqueVendorSlug(name: string): Promise<string> {
+/** Slugify a name and suffix `-2`, `-3`, … until `exists` returns false. */
+export async function uniqueSlug(
+  name: string,
+  exists: (slug: string) => Promise<boolean>,
+): Promise<string> {
   const base = slugify(name);
   let slug = base;
   let n = 1;
-  while (await prisma.vendorProfile.findUnique({ where: { slug } })) {
+  while (await exists(slug)) {
     n += 1;
     slug = `${base}-${n}`;
   }
   return slug;
+}
+
+/** Slugify a name and suffix `-2`, `-3`, … until the vendor slug is free. */
+export async function uniqueVendorSlug(name: string): Promise<string> {
+  return uniqueSlug(name, (slug) =>
+    prisma.vendorProfile.findUnique({ where: { slug } }).then(Boolean),
+  );
 }
