@@ -4,8 +4,19 @@ export const PAGE_SIZE = 9;
 
 export type SearchParams = Record<string, string | string[] | undefined>;
 
-function first(v: string | string[] | undefined): string | undefined {
+export function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
+}
+
+/**
+ * Prisma's `has`/`hasSome` on a String[] column is exact-match, not
+ * case-insensitive (Postgres array containment has no ILIKE equivalent via
+ * the fluent API). Destinations are stored Title Case in seed/vendor data, so
+ * matching both the raw query and its Title Case form covers the common case
+ * (a user typing lowercase) without a schema change or raw SQL.
+ */
+export function titleCase(s: string): string {
+  return s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
 }
 
 export function getPage(sp: SearchParams): number {
@@ -38,7 +49,7 @@ export function buildPackageWhere(sp: SearchParams): Prisma.PackageWhereInput {
     ...(destination && {
       OR: [
         { startCity: { contains: destination, mode: "insensitive" } },
-        { destinations: { has: destination } },
+        { destinations: { hasSome: [destination, titleCase(destination)] } },
         { title: { contains: destination, mode: "insensitive" } },
       ],
     }),
@@ -70,14 +81,15 @@ export function buildHotelWhere(sp: SearchParams): Prisma.HotelWhereInput {
     ...((propertyType === "HOTEL" || propertyType === "HOMESTAY") && {
       propertyType,
     }),
-    ...((min !== undefined || max !== undefined) && {
-      rooms: {
-        some: {
-          ...(min !== undefined && { pricePerNight: { gte: min } }),
-          ...(max !== undefined && { pricePerNight: { lte: max } }),
-        },
+    // Always require at least one room — a listing with zero rooms can't be
+    // booked or priced, and the card grid filters these out anyway. Requiring
+    // it here keeps `total`/pagination consistent with what's rendered.
+    rooms: {
+      some: {
+        ...(min !== undefined && { pricePerNight: { gte: min } }),
+        ...(max !== undefined && { pricePerNight: { lte: max } }),
       },
-    }),
+    },
     ...(rating !== undefined && { avgRating: { gte: rating } }),
   };
 }

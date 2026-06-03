@@ -17,7 +17,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const hotel = await prisma.hotel.findUnique({ where: { slug }, select: { name: true } });
+  const hotel = await prisma.hotel.findUnique({
+    where: { slug, isPublished: true },
+    select: { name: true },
+  });
   return { title: hotel?.name ?? "Stay" };
 }
 

@@ -5,16 +5,17 @@ import { prisma } from "@/lib/prisma";
 import { ListingCard, type ListingCardData } from "@/components/shared/listing-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { BadgeCheck } from "lucide-react";
+import { first, titleCase, type SearchParams } from "@/lib/filters";
 
 export const metadata: Metadata = { title: "Search" };
 
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const { q } = await searchParams;
-  const query = q?.trim() ?? "";
+  const sp = await searchParams;
+  const query = first(sp.q)?.trim() ?? "";
 
   const hasQuery = query.length > 0;
   const ci = { contains: query, mode: "insensitive" as const };
@@ -24,7 +25,11 @@ export default async function SearchPage({
         prisma.package.findMany({
           where: {
             isPublished: true,
-            OR: [{ title: ci }, { startCity: ci }, { destinations: { has: query } }],
+            OR: [
+              { title: ci },
+              { startCity: ci },
+              { destinations: { hasSome: [query, titleCase(query)] } },
+            ],
           },
           take: 6,
           include: { vendor: { select: { businessName: true } } },

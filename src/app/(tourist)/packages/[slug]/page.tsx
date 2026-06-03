@@ -20,7 +20,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const pkg = await prisma.package.findUnique({ where: { slug }, select: { title: true } });
+  const pkg = await prisma.package.findUnique({
+    where: { slug, isPublished: true },
+    select: { title: true },
+  });
   return { title: pkg?.title ?? "Package" };
 }
 
