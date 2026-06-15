@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { formatINR } from "@/lib/money";
 import { ListingImage } from "@/components/shared/listing-image";
 import { AltitudeChip } from "@/components/shared/altitude-chip";
@@ -43,6 +44,8 @@ export default async function PackageDetailPage({
     },
   });
   if (!pkg) notFound();
+
+  const session = await auth();
 
   const reviews = await prisma.review.findMany({
     where: { packageId: pkg.id },
@@ -172,6 +175,7 @@ export default async function PackageDetailPage({
 
         <div className="lg:sticky lg:top-24 lg:h-fit">
           <PackageBookingWidget
+            packageId={pkg.id}
             pricePerPerson={pkg.pricePerPerson}
             maxGroupSize={pkg.maxGroupSize}
             freeCancellationDays={pkg.freeCancellationDays}
@@ -180,6 +184,7 @@ export default async function PackageDetailPage({
             extras={pkg.extras.map((e) => ({ id: e.id, name: e.name, price: e.price }))}
             vendorName={pkg.vendor.businessName}
             vendorSlug={pkg.vendor.slug}
+            touristName={session?.user?.name ?? ""}
           />
         </div>
       </div>
