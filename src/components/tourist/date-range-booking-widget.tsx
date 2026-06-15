@@ -62,10 +62,22 @@ export function DateRangeBookingWidget({
     return formatDate(addDays(new Date(`${start}T00:00:00.000Z`), -freeCancellationDays));
   }, [start, freeCancellationDays]);
 
+  // Clamp guests down when fewer units means less total capacity — the
+  // Stepper only prevents incrementing past its max, it won't pull an
+  // already-selected value back down when that max shrinks.
+  function handleUnitCountChange(next: number) {
+    setUnitCount(next);
+    setGuestCount((g) => Math.min(g, maxGuestsPerUnit * next));
+  }
+
   async function onReserve() {
     setError(null);
     if (!start || !end || units < 1) {
       setError("Pick valid dates");
+      return;
+    }
+    if (contactName.trim().length < 2) {
+      setError("Enter your name");
       return;
     }
     if (!contactPhone.trim()) {
@@ -137,7 +149,7 @@ export function DateRangeBookingWidget({
           value={unitCount}
           min={1}
           max={maxUnits}
-          onChange={setUnitCount}
+          onChange={handleUnitCountChange}
         />
         <Stepper
           label="Guests"

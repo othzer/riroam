@@ -55,24 +55,33 @@ export async function verifyPayment(input: VerifyPaymentInput): Promise<Result> 
     return { ok: false, error: "Payment amount mismatch" };
   }
 
-  await prisma.$transaction([
-    prisma.payment.update({
-      where: { id: booking.payment.id },
-      data: { status: "PAID", razorpayPaymentId: razorpay_payment_id, paidAt: new Date() },
-    }),
-    prisma.booking.update({
-      where: { id: booking.id },
+  // Guard the PENDING -> CONFIRMED transition with an atomic updateMany so
+  // this path and the webhook can't both "win" the same booking and send
+  // duplicate emails — only the caller that actually flips the status
+  // (count > 0) proceeds to mark the payment paid and notify.
+  const payment = booking.payment;
+  const wonTransition = await prisma.$transaction(async (tx) => {
+    const result = await tx.booking.updateMany({
+      where: { id: booking.id, status: "PENDING" },
       data: { status: "CONFIRMED" },
-    }),
-  ]);
-
-  await sendBookingConfirmedEmail(booking.tourist.email, {
-    bookingCode: booking.bookingCode,
-    startDate: booking.startDate,
-    endDate: booking.endDate,
-    totalAmount: booking.totalAmount,
+    });
+    if (result.count === 0) return false;
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: { status: "PAID", razorpayPaymentId: razorpay_payment_id, paidAt: new Date() },
+    });
+    return true;
   });
-  await sendNewBookingReceivedEmail(booking.vendor.user.email, booking.vendor.user.name, booking.bookingCode);
+
+  if (wonTransition) {
+    await sendBookingConfirmedEmail(booking.tourist.email, {
+      bookingCode: booking.bookingCode,
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      totalAmount: booking.totalAmount,
+    });
+    await sendNewBookingReceivedEmail(booking.vendor.user.email, booking.vendor.user.name, booking.bookingCode);
+  }
 
   revalidatePath(`/checkout/${booking.id}`);
   revalidatePath(`/checkout/${booking.id}/result`);

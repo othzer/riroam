@@ -103,46 +103,45 @@ async function createPackageBooking(
 
   const bookingCode = await generateBookingCode();
 
-  const bookingId = await prisma.$transaction(
-    async (tx) => {
-      const booking = await tx.booking.create({
-        data: {
-          bookingCode,
-          touristId,
-          vendorId: pkg.vendorId,
-          bookingType: "PACKAGE",
-          packageId: pkg.id,
-          startDate,
-          endDate,
-          guestCount: data.guestCount,
-          unitCount: 1,
-          baseAmount,
-          extrasAmount,
-          totalAmount,
-          status: "PENDING",
-          expiresAt: new Date(Date.now() + HOLD_MINUTES * 60_000),
-          contactName: data.contactName,
-          contactPhone: data.contactPhone,
-          bookingExtras: { create: extrasSnapshot },
-        },
-      });
-
-      const order = await createRazorpayOrder(totalAmount, booking.bookingCode);
-      await tx.payment.create({
-        data: {
-          bookingId: booking.id,
-          razorpayOrderId: order.id,
-          amount: totalAmount,
-          status: "CREATED",
-        },
-      });
-
-      return booking.id;
+  const booking = await prisma.booking.create({
+    data: {
+      bookingCode,
+      touristId,
+      vendorId: pkg.vendorId,
+      bookingType: "PACKAGE",
+      packageId: pkg.id,
+      startDate,
+      endDate,
+      guestCount: data.guestCount,
+      unitCount: 1,
+      baseAmount,
+      extrasAmount,
+      totalAmount,
+      status: "PENDING",
+      expiresAt: new Date(Date.now() + HOLD_MINUTES * 60_000),
+      contactName: data.contactName,
+      contactPhone: data.contactPhone,
+      bookingExtras: { create: extrasSnapshot },
     },
-    { timeout: 10_000 },
-  );
+  });
 
-  return { ok: true, bookingId };
+  await attachRazorpayOrder(booking.id, booking.bookingCode, totalAmount);
+  return { ok: true, bookingId: booking.id };
+}
+
+/**
+ * Creates the Razorpay order and Payment row *after* the booking transaction
+ * commits — an external network call must never run while a row lock
+ * (SELECT ... FOR UPDATE) is held, since that holds up every other booking
+ * for the same room/vehicle for the duration of the request. If this step
+ * fails, the booking is left PENDING with no Payment; lazy expiry reclaims
+ * its held inventory in 20 minutes with no special-case cleanup needed.
+ */
+async function attachRazorpayOrder(bookingId: string, bookingCode: string, amount: number) {
+  const order = await createRazorpayOrder(amount, bookingCode);
+  await prisma.payment.create({
+    data: { bookingId, razorpayOrderId: order.id, amount, status: "CREATED" },
+  });
 }
 
 async function createHotelBooking(
@@ -206,21 +205,12 @@ async function createHotelBooking(
         },
       });
 
-      const order = await createRazorpayOrder(totalAmount, booking.bookingCode);
-      await tx.payment.create({
-        data: {
-          bookingId: booking.id,
-          razorpayOrderId: order.id,
-          amount: totalAmount,
-          status: "CREATED",
-        },
-      });
-
       return booking.id;
     },
     { timeout: 10_000 },
   );
 
+  await attachRazorpayOrder(bookingId, bookingCode, totalAmount);
   return { ok: true, bookingId };
 }
 
@@ -279,20 +269,11 @@ async function createVehicleBooking(
         },
       });
 
-      const order = await createRazorpayOrder(totalAmount, booking.bookingCode);
-      await tx.payment.create({
-        data: {
-          bookingId: booking.id,
-          razorpayOrderId: order.id,
-          amount: totalAmount,
-          status: "CREATED",
-        },
-      });
-
       return booking.id;
     },
     { timeout: 10_000 },
   );
 
+  await attachRazorpayOrder(bookingId, bookingCode, totalAmount);
   return { ok: true, bookingId };
 }

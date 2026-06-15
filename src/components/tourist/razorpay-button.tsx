@@ -65,13 +65,23 @@ export function RazorpayButton({
       theme: { color: "#E39129" },
       handler: async (response: unknown) => {
         const r = response as RazorpaySuccessResponse;
-        await verifyPayment({
-          bookingId,
-          razorpay_order_id: r.razorpay_order_id,
-          razorpay_payment_id: r.razorpay_payment_id,
-          razorpay_signature: r.razorpay_signature,
-        });
-        router.push(`/checkout/${bookingId}/result`);
+        try {
+          const res = await verifyPayment({
+            bookingId,
+            razorpay_order_id: r.razorpay_order_id,
+            razorpay_payment_id: r.razorpay_payment_id,
+            razorpay_signature: r.razorpay_signature,
+          });
+          if (res.ok) {
+            router.push(`/checkout/${bookingId}/result`);
+            return;
+          }
+          toast.error(res.error);
+        } catch {
+          toast.error("Couldn't verify the payment — check your trip status");
+        } finally {
+          setPending(false);
+        }
       },
       modal: { ondismiss: () => setPending(false) },
     });

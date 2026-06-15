@@ -69,6 +69,10 @@ export function PackageBookingWidget({
       setError("Pick a start date");
       return;
     }
+    if (contactName.trim().length < 2) {
+      setError("Enter your name");
+      return;
+    }
     if (!contactPhone.trim()) {
       setError("Enter a phone number");
       return;
