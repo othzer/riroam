@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { ListingImage } from "@/components/shared/listing-image";
 import { AltitudeChip } from "@/components/shared/altitude-chip";
 import { RatingStars } from "@/components/shared/rating-stars";
@@ -39,6 +40,8 @@ export default async function HotelDetailPage({
     },
   });
   if (!hotel || hotel.rooms.length === 0) notFound();
+
+  const session = await auth();
 
   const reviews = await prisma.review.findMany({
     where: { hotelId: hotel.id },
@@ -97,16 +100,19 @@ export default async function HotelDetailPage({
         </section>
 
         <HotelBookingSection
+          hotelId={hotel.id}
           rooms={hotel.rooms.map((r) => ({
             id: r.id,
             name: r.name,
             description: r.description,
             pricePerNight: r.pricePerNight,
             capacity: r.capacity,
+            totalUnits: r.totalUnits,
           }))}
           freeCancellationDays={hotel.freeCancellationDays}
           vendorName={hotel.vendor.businessName}
           vendorSlug={hotel.vendor.slug}
+          touristName={session?.user?.name ?? ""}
         />
 
         {hotel.latitude != null && hotel.longitude != null && (

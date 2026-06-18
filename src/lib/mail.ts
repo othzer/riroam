@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { formatDateRange } from "@/lib/dates";
+import { formatINR } from "@/lib/money";
 
 // Email is best-effort: every send is wrapped so a failure (or a missing API
 // key in local dev) never breaks the action that triggered it (§10).
@@ -51,6 +53,38 @@ export async function sendVendorApprovedEmail(to: string, name: string) {
     html: layout(
       `<p>Hi ${escapeHtml(name)},</p>
        <p>Your business has been approved. You can now publish listings and take bookings from your vendor dashboard.</p>`,
+    ),
+  });
+}
+
+export async function sendBookingConfirmedEmail(
+  to: string,
+  booking: { bookingCode: string; startDate: Date; endDate: Date; totalAmount: number },
+) {
+  await send({
+    to,
+    subject: `Booking confirmed — ${booking.bookingCode}`,
+    html: layout(
+      `<p>Your booking is confirmed.</p>
+       <p style="padding:12px;background:#DCEBF1;border-radius:8px;font-family:monospace">${escapeHtml(booking.bookingCode)}</p>
+       <p>${escapeHtml(formatDateRange(booking.startDate, booking.endDate))} · ${escapeHtml(formatINR(booking.totalAmount))}</p>
+       <p>You'll find the full details and your cancellation policy under My Trips.</p>`,
+    ),
+  });
+}
+
+export async function sendNewBookingReceivedEmail(
+  to: string,
+  vendorName: string,
+  bookingCode: string,
+) {
+  await send({
+    to,
+    subject: `New booking — ${bookingCode}`,
+    html: layout(
+      `<p>Hi ${escapeHtml(vendorName)},</p>
+       <p>You have a new booking: <span style="font-family:monospace">${escapeHtml(bookingCode)}</span>.</p>
+       <p>View it from your vendor dashboard.</p>`,
     ),
   });
 }
