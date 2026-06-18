@@ -3,13 +3,43 @@
 import { revalidatePath } from "next/cache";
 import { Prisma, Role, VendorStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireUser, unstable_update } from "@/lib/auth";
+import { requireUser, requireVendor, unstable_update } from "@/lib/auth";
 import { uniqueVendorSlug } from "@/lib/slug";
 import { onboardingSchema, type OnboardingInput } from "@/lib/validators/vendor";
+import { replyReviewSchema } from "@/lib/validators/review";
 
 type ActionResult =
   | { ok: true }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
+type SimpleResult = { ok: true } | { ok: false; error: string };
+
+/** Vendor replies to a review on one of their own listings. */
+export async function replyToReview(
+  reviewId: string,
+  reply: string,
+): Promise<SimpleResult> {
+  const { vendor } = await requireVendor();
+  const parsed = replyReviewSchema.safeParse({ reply });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid reply" };
+  }
+
+  const review = await prisma.review.findUnique({
+    where: { id: reviewId },
+    select: { vendorId: true },
+  });
+  if (!review || review.vendorId !== vendor.id) {
+    return { ok: false, error: "Review not found" };
+  }
+
+  await prisma.review.update({
+    where: { id: reviewId },
+    data: { vendorReply: parsed.data.reply, repliedAt: new Date() },
+  });
+
+  revalidatePath("/vendor/reviews");
+  return { ok: true };
+}
 
 /**
  * Turn a TOURIST into a VENDOR (status PENDING_REVIEW), or let a REJECTED
