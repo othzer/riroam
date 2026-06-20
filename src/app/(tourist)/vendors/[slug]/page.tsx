@@ -5,8 +5,8 @@ import { BadgeCheck } from "lucide-react";
 import { BookingStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Ridge } from "@/components/shared/ridge";
-import { RatingStars } from "@/components/shared/rating-stars";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ReviewCard } from "@/components/shared/review-card";
 import { StorefrontTabs } from "@/components/tourist/storefront-tabs";
 import type { ListingCardData } from "@/components/shared/listing-card";
 
@@ -184,19 +184,18 @@ export default async function VendorStorefrontPage({
           {reviews.length > 0 ? (
             <div className="divide-y divide-border-soft rounded-card border border-border bg-surface px-4">
               {reviews.map((r) => (
-                <div key={r.id} className="py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-ink">{r.tourist.name}</p>
-                    <RatingStars rating={r.rating} reviewCount={1} />
-                  </div>
-                  <p className="mt-1 text-sm text-ink-soft">{r.comment}</p>
-                  {r.vendorReply && (
-                    <div className="mt-2 border-l-2 border-border pl-3 text-sm text-ink-soft">
-                      <span className="font-medium text-ink">{vendor.businessName}:</span>{" "}
-                      {r.vendorReply}
-                    </div>
-                  )}
-                </div>
+                <ReviewCard
+                  key={r.id}
+                  review={{
+                    id: r.id,
+                    touristName: r.tourist.name,
+                    rating: r.rating,
+                    title: r.title,
+                    comment: r.comment,
+                    vendorReply: r.vendorReply,
+                    vendorName: vendor.businessName,
+                  }}
+                />
               ))}
             </div>
           ) : (
