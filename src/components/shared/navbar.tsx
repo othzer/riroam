@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/packages", label: "Packages" },
   { href: "/hotels", label: "Stays" },
   { href: "/vehicles", label: "Rides" },
+  { href: "/plan", label: "Plan a trip" },
 ];
 
 // Session-aware — this is what was missing before: a signed-in user now sees
