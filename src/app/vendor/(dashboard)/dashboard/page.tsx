@@ -4,6 +4,7 @@ import { VendorStatus } from "@prisma/client";
 import { Clock, CheckCircle2, XCircle, Ban } from "lucide-react";
 import { requireVendor } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { formatINR } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Vendor dashboard" };
@@ -31,6 +32,24 @@ export default async function VendorDashboardPage() {
   const activeListings = pkgActive + hotelActive + vehActive;
   const totalListings = pkgTotal + hotelTotal + vehTotal;
 
+  const now = new Date();
+  const [upcomingBookings, revenueAgg, ratingAgg] = await Promise.all([
+    prisma.booking.count({
+      where: { vendorId: vendor.id, status: "CONFIRMED", endDate: { gte: now } },
+    }),
+    prisma.booking.aggregate({
+      _sum: { totalAmount: true },
+      where: { vendorId: vendor.id, status: { in: ["CONFIRMED", "COMPLETED"] } },
+    }),
+    prisma.review.aggregate({
+      _avg: { rating: true },
+      _count: true,
+      where: { vendorId: vendor.id },
+    }),
+  ]);
+  const revenue = revenueAgg._sum.totalAmount ?? 0;
+  const avgRating = ratingAgg._count > 0 ? (ratingAgg._avg.rating ?? 0) : null;
+
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
       <div className="mb-6">
@@ -47,13 +66,10 @@ export default async function VendorDashboardPage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active listings" value={String(activeListings)} />
-        <StatCard label="Total listings" value={String(totalListings)} />
-        <StatCard label="Pending bookings" value="—" />
-        <StatCard label="Avg rating" value="—" />
+        <StatCard label="Upcoming bookings" value={String(upcomingBookings)} />
+        <StatCard label="Revenue (test)" value={formatINR(revenue)} />
+        <StatCard label="Avg rating" value={avgRating != null ? avgRating.toFixed(1) : "—"} />
       </div>
-      <p className="mt-6 text-sm text-ink-muted">
-        Bookings and reviews arrive in later phases.
-      </p>
     </div>
   );
 }

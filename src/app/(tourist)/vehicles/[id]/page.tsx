@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { ListingImage } from "@/components/shared/listing-image";
 import { RatingStars } from "@/components/shared/rating-stars";
 import { VehicleSpecGrid } from "@/components/shared/vehicle-spec-grid";
+import { ReviewCard } from "@/components/shared/review-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DateRangeBookingWidget } from "@/components/tourist/date-range-booking-widget";
 
@@ -96,13 +97,18 @@ export default async function VehicleDetailPage({
             {reviews.length > 0 ? (
               <div className="divide-y divide-border-soft rounded-card border border-border bg-surface px-4">
                 {reviews.map((r) => (
-                  <div key={r.id} className="py-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-ink">{r.tourist.name}</p>
-                      <RatingStars rating={r.rating} reviewCount={1} />
-                    </div>
-                    <p className="mt-1 text-sm text-ink-soft">{r.comment}</p>
-                  </div>
+                  <ReviewCard
+                    key={r.id}
+                    review={{
+                      id: r.id,
+                      touristName: r.tourist.name,
+                      rating: r.rating,
+                      title: r.title,
+                      comment: r.comment,
+                      vendorReply: r.vendorReply,
+                      vendorName: vehicle.vendor.businessName,
+                    }}
+                  />
                 ))}
               </div>
             ) : (
