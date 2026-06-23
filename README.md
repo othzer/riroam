@@ -22,7 +22,7 @@ elevation profile with acclimatization days shaded.
 | Validation | Zod + react-hook-form                              |
 | Payments   | Razorpay (test mode)                               |
 | Uploads    | Cloudinary                                          |
-| AI         | Google Gemini 2.5 Flash                            |
+| AI         | Google Gemini (Flash) via `@google/genai`          |
 | Email      | Resend + React Email                               |
 | Maps       | Leaflet + OpenStreetMap                            |
 
