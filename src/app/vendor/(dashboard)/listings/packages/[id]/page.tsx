@@ -50,6 +50,7 @@ export default async function EditPackagePage({
       description: d.description,
     })),
     extras: pkg.extras.map((e) => ({
+      extraId: e.id,
       name: e.name,
       description: e.description ?? "",
       price: paiseToRupees(e.price),
