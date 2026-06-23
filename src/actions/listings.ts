@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { VendorStatus } from "@prisma/client";
+import { Prisma, VendorStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireVendor } from "@/lib/auth";
 import { uniqueSlug } from "@/lib/slug";
@@ -35,6 +35,11 @@ function invalid(parsed: { error: { flatten: () => { fieldErrors: Record<string,
 
 /** Thrown inside an update transaction to surface a friendly message. */
 class ListingUpdateError extends Error {}
+
+/** A Restrict foreign-key violation — a booking still references the row. */
+function isBookingFkViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003";
+}
 
 // ── Packages ────────────────────────────────────────────────────────────────
 export async function createPackage(input: PackageInput): Promise<Result> {
@@ -310,6 +315,11 @@ export async function updateHotel(
     });
   } catch (e) {
     if (e instanceof ListingUpdateError) return { ok: false, error: e.message };
+    // Backstop for the race the precheck can't close: a booking landed on a
+    // room being removed after we counted. The Restrict FK rejects the delete.
+    if (isBookingFkViolation(e)) {
+      return { ok: false, error: "A room has bookings and can't be removed — unpublish the hotel instead" };
+    }
     throw e;
   }
 
@@ -401,8 +411,8 @@ export async function deleteListing(
   }
 
   // A listing with bookings (any status) is load-bearing: trips, reviews, and
-  // refunds all reach back through it. Deleting would sever those FKs
-  // (SetNull) and quietly corrupt history — unpublishing retires it instead.
+  // refunds all reach back through it. The Restrict FK forbids the delete at
+  // the DB level; this precheck is the friendly path — unpublishing retires it.
   const bookingCount = await prisma.booking.count({
     where:
       type === "package"
@@ -418,9 +428,21 @@ export async function deleteListing(
     };
   }
 
-  if (type === "package") await prisma.package.delete({ where: { id } });
-  else if (type === "hotel") await prisma.hotel.delete({ where: { id } });
-  else await prisma.vehicleListing.delete({ where: { id } });
+  try {
+    if (type === "package") await prisma.package.delete({ where: { id } });
+    else if (type === "hotel") await prisma.hotel.delete({ where: { id } });
+    else await prisma.vehicleListing.delete({ where: { id } });
+  } catch (e) {
+    // Backstop for the count/delete race: a booking landed after the precheck.
+    // The Restrict FK rejects the delete rather than nulling the booking's link.
+    if (isBookingFkViolation(e)) {
+      return {
+        ok: false,
+        error: "This listing has bookings and can't be deleted — unpublish it instead",
+      };
+    }
+    throw e;
+  }
 
   revalidatePath("/vendor/listings");
   return { ok: true };
