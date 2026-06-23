@@ -63,6 +63,11 @@ function timingSafeEqualHex(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
+/** Fetches a payment from Razorpay — used to re-verify the captured amount. */
+export async function fetchRazorpayPayment(paymentId: string) {
+  return getClient().payments.fetch(paymentId);
+}
+
 /** Refunds a captured payment (test mode). `amountPaise` omitted = full refund. */
 export async function refundPayment(paymentId: string, amountPaise?: number) {
   return getClient().payments.refund(paymentId, {
