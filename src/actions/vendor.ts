@@ -3,15 +3,54 @@
 import { revalidatePath } from "next/cache";
 import { Prisma, Role, VendorStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireVendor, unstable_update } from "@/lib/auth";
+import {
+  requireUser,
+  requireVendor,
+  requireApprovedVendor,
+  unstable_update,
+} from "@/lib/auth";
 import { uniqueVendorSlug } from "@/lib/slug";
-import { onboardingSchema, type OnboardingInput } from "@/lib/validators/vendor";
+import {
+  onboardingSchema,
+  storefrontSchema,
+  type OnboardingInput,
+  type StorefrontInput,
+} from "@/lib/validators/vendor";
 import { replyReviewSchema } from "@/lib/validators/review";
 
 type ActionResult =
   | { ok: true }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 type SimpleResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Storefront lite-customization — logo, banner, accent colour, tagline.
+ * APPROVED vendors only; empty strings clear the field back to null.
+ */
+export async function updateStorefront(
+  input: StorefrontInput,
+): Promise<SimpleResult> {
+  const { vendor } = await requireApprovedVendor();
+  const parsed = storefrontSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form" };
+  }
+  const d = parsed.data;
+
+  await prisma.vendorProfile.update({
+    where: { id: vendor.id },
+    data: {
+      tagline: d.tagline || null,
+      accentColor: d.accentColor || null,
+      logoUrl: d.logoUrl || null,
+      bannerUrl: d.bannerUrl || null,
+    },
+  });
+
+  revalidatePath("/vendor/storefront");
+  revalidatePath(`/vendors/${vendor.slug}`);
+  return { ok: true };
+}
 
 /** Vendor replies to a review on one of their own listings. */
 export async function replyToReview(
