@@ -1,10 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import Razorpay from "razorpay";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { verifyPaymentSignature } from "@/lib/razorpay";
+import { fetchRazorpayPayment, verifyPaymentSignature } from "@/lib/razorpay";
 import { verifyPaymentSchema, type VerifyPaymentInput } from "@/lib/validators/booking";
 import { sendBookingConfirmedEmail, sendNewBookingReceivedEmail } from "@/lib/mail";
 
@@ -46,12 +45,17 @@ export async function verifyPayment(input: VerifyPaymentInput): Promise<Result> 
   if (!validSignature) return { ok: false, error: "Payment verification failed" };
 
   // Never trust the client's amount — re-check against Razorpay's own record.
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!key_id || !key_secret) return { ok: false, error: "Payments are not configured" };
-  const rzp = new Razorpay({ key_id, key_secret });
-  const remotePayment = await rzp.payments.fetch(razorpay_payment_id);
-  if (Number(remotePayment.amount) !== booking.payment.amount) {
+  // If this lookup fails transiently, don't fail the flow with a scary error:
+  // the webhook is the independent second path to CONFIRMED (§7.4).
+  let remoteAmount: number;
+  try {
+    const remotePayment = await fetchRazorpayPayment(razorpay_payment_id);
+    remoteAmount = Number(remotePayment.amount);
+  } catch (e) {
+    console.error("verifyPayment: payment fetch failed:", e);
+    return { ok: false, error: "Couldn't verify the payment yet — check My Trips in a moment" };
+  }
+  if (remoteAmount !== booking.payment.amount) {
     return { ok: false, error: "Payment amount mismatch" };
   }
 

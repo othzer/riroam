@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { registerSchema, type RegisterInput } from "@/lib/validators/auth";
 
@@ -27,9 +28,18 @@ export async function registerUser(input: RegisterInput): Promise<ActionResult> 
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.create({
-    data: { name, email, passwordHash },
-  });
+  try {
+    await prisma.user.create({
+      data: { name, email, passwordHash },
+    });
+  } catch (e) {
+    // Two concurrent registrations can both pass the check above; the @unique
+    // constraint is the real guard — turn its violation into the same error.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return { ok: false, error: "An account with this email already exists" };
+    }
+    throw e;
+  }
 
   return { ok: true };
 }

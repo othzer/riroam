@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ export function RazorpayButton({
   name,
   email,
   phone,
+  expiresAt,
   disabled,
 }: {
   bookingId: string;
@@ -41,11 +42,30 @@ export function RazorpayButton({
   name: string;
   email: string;
   phone: string;
+  expiresAt?: string; // ISO — disables the button once the hold lapses
   disabled?: boolean;
 }) {
   const router = useRouter();
   const [scriptReady, setScriptReady] = useState(false);
   const [pending, setPending] = useState(false);
+  // Deterministic initial value — no Date.now() during render, so server and
+  // client hydrate identically.
+  const [expired, setExpired] = useState(false);
+
+  // The server already refuses expired holds at page load; this covers the
+  // user who sits on the page past the deadline — the button locks and a
+  // refresh swaps in the server-rendered "hold expired" state. A hold that has
+  // somehow already lapsed on mount clamps the delay to 0 and fires next tick,
+  // so we never setState synchronously during the effect.
+  useEffect(() => {
+    if (!expiresAt) return;
+    const remaining = new Date(expiresAt).getTime() - Date.now();
+    const timer = setTimeout(() => {
+      setExpired(true);
+      router.refresh();
+    }, Math.max(0, remaining));
+    return () => clearTimeout(timer);
+  }, [expiresAt, router]);
 
   function pay() {
     if (!window.Razorpay) {
@@ -101,7 +121,7 @@ export function RazorpayButton({
       <button
         type="button"
         onClick={pay}
-        disabled={disabled || pending || !scriptReady}
+        disabled={disabled || expired || pending || !scriptReady}
         className="flex w-full items-center justify-center gap-1.5 rounded-control bg-apricot px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-apricot-hover active:scale-[0.98] disabled:opacity-60"
       >
         {(pending || !scriptReady) && <Loader2 className="size-4 animate-spin" />}
