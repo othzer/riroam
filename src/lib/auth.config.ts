@@ -8,6 +8,10 @@ import Google from "next-auth/providers/google";
  * DB-touching jwt callback live in lib/auth.ts.
  */
 export default {
+  // Trust the deployment host (Vercel/localhost) when deriving callback URLs.
+  // Required for Auth.js v5 in production; without it `auth()` throws
+  // UntrustedHost during SSR.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
