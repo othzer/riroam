@@ -2,12 +2,13 @@ import { Search } from "lucide-react";
 
 // Landing hero search — a plain GET form so it works with zero client JS and
 // lands on /packages with the same searchParams the explore filter bar reads.
+      
 export function SearchCard() {
   return (
     <form
       action="/packages"
       method="get"
-      className="grid grid-cols-1 divide-y divide-border rounded-card border border-border bg-surface p-2 shadow-lg sm:grid-cols-[1.2fr_1fr_0.8fr_auto] sm:divide-x sm:divide-y-0"
+      className="relative z-10 grid grid-cols-1 divide-y divide-border rounded-card border border-border bg-white p-2 shadow-lg sm:grid-cols-[1.2fr_1fr_0.8fr_auto] sm:divide-x sm:divide-y-0"
     >
       <Field label="Where in Ladakh" name="destination" placeholder="Nubra, Pangong, Leh…" />
       <Field label="Dates" name="from" type="date" />
