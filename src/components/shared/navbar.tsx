@@ -29,7 +29,7 @@ export async function Navbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+                className="text-[13px] font-medium text-ink-soft transition-colors hover:text-ink"
               >
                 {l.label}
               </Link>
@@ -41,7 +41,7 @@ export async function Navbar() {
           {!session?.user && (
             <Link
               href="/vendor/onboarding"
-              className="hidden text-sm font-medium text-ink-soft transition-colors hover:text-ink sm:block"
+              className="hidden text-[13px] font-semibold text-pangong transition-colors hover:text-pangong-deep sm:block"
             >
               List your business
             </Link>
@@ -54,7 +54,7 @@ export async function Navbar() {
               role={session.user.role}
             />
           ) : (
-            <Link href="/login" className={cn(buttonVariants({ size: "sm" }))}>
+            <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
               Sign in
             </Link>
           )}

@@ -10,7 +10,7 @@ export function Footer() {
           <div>
             <Logo />
             <p className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
-              <PrayerFlags /> ri (རི) — mountain, in Ladakhi
+              <PrayerFlags /> ri (རི) — mountain, in Ladakhi · Leh, India
             </p>
           </div>
 

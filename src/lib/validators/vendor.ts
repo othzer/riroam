@@ -36,3 +36,18 @@ export const onboardingSchema = z.object({
 });
 
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
+
+// Storefront lite-customization (design §6). accentColor tints the banner and
+// small underline accents only — never platform buttons.
+export const storefrontSchema = z.object({
+  tagline: z.string().trim().max(120).optional().or(z.literal("")),
+  accentColor: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{6})$/, "Use a 6-digit hex colour like #0D6E8F")
+    .optional()
+    .or(z.literal("")),
+  logoUrl: z.string().url().optional().or(z.literal("")),
+  bannerUrl: z.string().url().optional().or(z.literal("")),
+});
+
+export type StorefrontInput = z.infer<typeof storefrontSchema>;

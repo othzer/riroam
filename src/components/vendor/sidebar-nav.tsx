@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, PackageOpen, CalendarCheck, Star } from "lucide-react";
+import { LayoutDashboard, PackageOpen, CalendarCheck, Star, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
   { href: "/vendor/listings", label: "Listings", icon: PackageOpen },
   { href: "/vendor/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/vendor/reviews", label: "Reviews", icon: Star },
+  { href: "/vendor/storefront", label: "Storefront", icon: Store },
 ];
 
 export function SidebarNav() {

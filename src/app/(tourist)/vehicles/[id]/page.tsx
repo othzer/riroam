@@ -1,14 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ChevronRight } from "lucide-react";
+import { Star } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { ListingImage } from "@/components/shared/listing-image";
-import { RatingStars } from "@/components/shared/rating-stars";
 import { VehicleSpecGrid } from "@/components/shared/vehicle-spec-grid";
-import { ReviewCard } from "@/components/shared/review-card";
-import { EmptyState } from "@/components/shared/empty-state";
+import { DetailHeader } from "@/components/tourist/detail-header";
+import { DetailGallery } from "@/components/tourist/detail-gallery";
+import { DetailCard, ReviewsCard } from "@/components/tourist/detail-card";
 import { DateRangeBookingWidget } from "@/components/tourist/date-range-booking-widget";
 
 export async function generateMetadata({
@@ -46,78 +44,61 @@ export default async function VehicleDetailPage({
     include: { tourist: { select: { name: true } } },
   });
 
-  const gallery = [vehicle.coverImageUrl, ...vehicle.imageUrls].slice(0, 3);
-
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-ink-muted">
-        <Link href="/" className="hover:text-ink">Home</Link>
-        <ChevronRight className="size-3" />
-        <Link href="/vehicles" className="hover:text-ink">Rides</Link>
-        <ChevronRight className="size-3" />
-        <span className="text-ink-soft">{vehicle.title}</span>
-      </nav>
+    <div className="mx-auto max-w-5xl px-6 py-6">
+      <DetailHeader
+        breadcrumb={{ label: "Rides", href: "/vehicles" }}
+        title={vehicle.title}
+        meta={[
+          <span key="type">{vehicle.vehicleType === "TAXI" ? "Taxi" : "Bike"}</span>,
+          <span key="bm">
+            {vehicle.brand} {vehicle.model}
+          </span>,
+          <span key="loc">
+            {vehicle.city}, {vehicle.state}
+          </span>,
+          ...(vehicle.reviewCount > 0
+            ? [
+                <span key="rating" className="inline-flex items-center gap-1">
+                  <Star className="size-3 text-rating" fill="currentColor" strokeWidth={0} />
+                  {vehicle.avgRating.toFixed(1)} ({vehicle.reviewCount})
+                </span>,
+              ]
+            : []),
+        ]}
+      />
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-ink">{vehicle.title}</h1>
-          <p className="mt-1.5 text-sm text-ink-soft">
-            {vehicle.vehicleType === "TAXI" ? "Taxi" : "Bike"} · {vehicle.brand} {vehicle.model} · {vehicle.city}, {vehicle.state}
-          </p>
-          <div className="mt-2">
-            <RatingStars rating={vehicle.avgRating} reviewCount={vehicle.reviewCount} />
-          </div>
-        </div>
-      </div>
+      <DetailGallery
+        images={[vehicle.coverImageUrl, ...vehicle.imageUrls]}
+        alt={vehicle.title}
+        kind="vehicle"
+      />
 
-      <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:grid-rows-2">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-card bg-sand sm:col-span-2 sm:row-span-2 sm:aspect-auto">
-          <ListingImage src={gallery[0]} alt={vehicle.title} kind="vehicle" sizes="(min-width: 640px) 66vw, 100vw" priority />
-        </div>
-        {gallery.slice(1).map((img, i) => (
-          <div key={i} className="relative hidden aspect-[16/10] overflow-hidden rounded-card bg-sand sm:block">
-            <ListingImage src={img} alt="" kind="vehicle" sizes="33vw" />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-8">
-          <section>
-            <h2 className="mb-3 font-heading text-xl font-bold text-ink">Specifications</h2>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_308px] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <DetailCard title="Specifications">
             <VehicleSpecGrid
               seats={vehicle.seats}
               transmission={vehicle.transmission}
               fuelType={vehicle.fuelType}
             />
-          </section>
+          </DetailCard>
 
-          <section>
-            <h2 className="mb-3 font-heading text-xl font-bold text-ink">Reviews</h2>
-            {reviews.length > 0 ? (
-              <div className="divide-y divide-border-soft rounded-card border border-border bg-surface px-4">
-                {reviews.map((r) => (
-                  <ReviewCard
-                    key={r.id}
-                    review={{
-                      id: r.id,
-                      touristName: r.tourist.name,
-                      rating: r.rating,
-                      title: r.title,
-                      comment: r.comment,
-                      vendorReply: r.vendorReply,
-                      vendorName: vehicle.vendor.businessName,
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState title="No reviews yet" body="Reviews appear here once tourists complete their trip." />
-            )}
-          </section>
+          <ReviewsCard
+            reviews={reviews.map((r) => ({
+              id: r.id,
+              touristName: r.tourist.name,
+              rating: r.rating,
+              title: r.title,
+              comment: r.comment,
+              vendorReply: r.vendorReply,
+            }))}
+            vendorName={vehicle.vendor.businessName}
+            emptyBody="Reviews appear here once travellers complete their trip."
+          />
         </div>
 
-        <div className="lg:sticky lg:top-24 lg:h-fit">
+        <div className="lg:sticky lg:top-24">
           <DateRangeBookingWidget
             target={{ bookingType: "VEHICLE", vehicleId: vehicle.id }}
             pricePerUnit={vehicle.pricePerDay}
