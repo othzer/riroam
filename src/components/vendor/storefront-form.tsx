@@ -31,9 +31,15 @@ export function StorefrontForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tagline, setTagline] = useState(initial.tagline);
-  const [accentColor, setAccentColor] = useState(initial.accentColor || "#0D6E8F");
+  // Stays "" until the vendor actually picks a colour — an unset accent must
+  // not be silently coerced into a real value and saved on an unrelated edit.
+  const [accentColor, setAccentColor] = useState(initial.accentColor);
   const [logoUrl, setLogoUrl] = useState(initial.logoUrl);
   const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl);
+
+  // <input type="color"> can't display "" — this is a render-only fallback,
+  // never written back into accentColor.
+  const displayColor = accentColor || "#0D6E8F";
 
   async function onSubmit() {
     setError(null);
@@ -69,7 +75,10 @@ export function StorefrontForm({
     >
       {/* live preview banner — accent tints the banner only, per design §6 */}
       <div className="overflow-hidden rounded-card border border-border">
-        <div className="relative h-28" style={{ backgroundColor: `${accentColor}22` }}>
+        <div
+          className="relative h-28"
+          style={{ backgroundColor: accentColor ? `${accentColor}22` : "var(--sand)" }}
+        >
           {bannerUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
@@ -91,7 +100,7 @@ export function StorefrontForm({
             {tagline && (
               <p
                 className="inline-block border-b-2 text-xs text-ink-soft"
-                style={{ borderColor: accentColor }}
+                style={{ borderColor: displayColor }}
               >
                 {tagline}
               </p>
@@ -137,7 +146,7 @@ export function StorefrontForm({
             <input
               id="accent"
               type="color"
-              value={accentColor}
+              value={displayColor}
               onChange={(e) => setAccentColor(e.target.value)}
               className="size-9 shrink-0 cursor-pointer rounded-control border border-border bg-surface"
             />

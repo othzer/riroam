@@ -3,6 +3,9 @@ import { VendorStatus, BookingStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatINR } from "@/lib/money";
 
+// Platform metrics must never be served stale from a cache.
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   const [
     pending,

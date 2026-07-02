@@ -28,7 +28,9 @@ export default async function Home() {
         take: 3,
         include: { vendor: { select: { businessName: true } } },
       }),
-      prisma.package.count({ where: { isPublished: true } }),
+      prisma.package.count({
+        where: { isPublished: true, destinations: { hasSome: ["Thiksey", "Hemis"] } },
+      }),
       prisma.package.count({
         where: { isPublished: true, destinations: { hasSome: ["Pangong", "Tso Moriri", "Tso Kar"] } },
       }),
@@ -123,7 +125,7 @@ export default async function Home() {
         <section className="mx-auto max-w-6xl px-6 py-6">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <CategoryTile
-              href="/packages"
+              href="/packages?destination=Thiksey"
               icon={Landmark}
               label="Monasteries & culture"
               count={`${cultureCount} ${cultureCount === 1 ? "circuit" : "circuits"}`}

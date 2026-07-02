@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { requireVendor } from "@/lib/auth";
+import { requireApprovedVendor } from "@/lib/auth";
 import { StorefrontForm } from "@/components/vendor/storefront-form";
 
 export const metadata: Metadata = { title: "Storefront" };
 
 export default async function StorefrontPage() {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireApprovedVendor();
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-8">
