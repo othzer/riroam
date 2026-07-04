@@ -25,3 +25,33 @@ export function addDays(d: Date, days: number): Date {
 export function isExpired(expiresAt: Date | null): boolean {
   return !expiresAt || expiresAt.getTime() - Date.now() <= 0;
 }
+
+/** `yyyy-mm-dd` — the value format an `<input type="date">` expects. */
+export function toISODate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Prefilled booking window, resolved on the server. Booking widgets are client
+ * components, so deriving these from `Date.now()` in a `useState` initializer
+ * would make the server and client render different values and break
+ * hydration — the caller passes them down instead.
+ *
+ * A week of lead time is the default: Ladakh trips need permits and an
+ * acclimatisation buffer, so "tomorrow" is rarely a real option.
+ */
+export function defaultBookingWindow(
+  leadDays = 7,
+  nights = 3,
+  now: Date = new Date(),
+): { start: string; end: string } {
+  const start = addDays(now, leadDays);
+  return { start: toISODate(start), end: toISODate(addDays(start, nights)) };
+}
+
+/** Keeps a prefilled date inside a listing's availability window. */
+export function clampISODate(value: string, min?: string, max?: string): string {
+  if (min && value < min) return max && min > max ? max : min;
+  if (max && value > max) return max;
+  return value;
+}

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Star } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { defaultBookingWindow, toISODate } from "@/lib/dates";
 import { AmenityGrid } from "@/components/shared/amenity-grid";
 import { LeafletMap } from "@/components/shared/leaflet-map";
 import { DetailHeader } from "@/components/tourist/detail-header";
@@ -44,6 +45,7 @@ export default async function HotelDetailPage({
   if (!hotel || hotel.rooms.length === 0) notFound();
 
   const session = await auth();
+  const bookingWindow = defaultBookingWindow();
 
   const reviews = await prisma.review.findMany({
     where: { hotelId: hotel.id },
@@ -133,6 +135,9 @@ export default async function HotelDetailPage({
               vendorName={hotel.vendor.businessName}
               vendorSlug={hotel.vendor.slug}
               touristName={session?.user?.name ?? ""}
+              defaultStart={bookingWindow.start}
+              defaultEnd={bookingWindow.end}
+              today={toISODate(new Date())}
             />
           </div>
         </div>
