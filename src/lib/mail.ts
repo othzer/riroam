@@ -4,7 +4,11 @@ import { formatINR } from "@/lib/money";
 
 // Email is best-effort: every send is wrapped so a failure (or a missing API
 // key in local dev) never breaks the action that triggered it (§10).
-const FROM = "RiRoam <onboarding@resend.dev>";
+// Resend's shared `onboarding@resend.dev` sender only delivers to the address
+// that owns the Resend account — every other recipient is rejected. Point
+// RESEND_FROM at an address on a domain you've verified in Resend to actually
+// reach travellers.
+const FROM = process.env.RESEND_FROM || "RiRoam <onboarding@resend.dev>";
 
 function getClient(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -18,7 +22,13 @@ async function send(opts: { to: string; subject: string; html: string }) {
     return;
   }
   try {
-    await client.emails.send({ from: FROM, ...opts });
+    // The SDK resolves with { data, error } instead of throwing on an API
+    // rejection, so a catch block alone silently swallows every failure —
+    // the error field is the only thing that surfaces a refused recipient.
+    const { error } = await client.emails.send({ from: FROM, ...opts });
+    if (error) {
+      console.error(`[mail] rejected "${opts.subject}" → ${opts.to}:`, error);
+    }
   } catch (err) {
     console.error("[mail] send failed:", err);
   }

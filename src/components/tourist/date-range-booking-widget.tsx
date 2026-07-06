@@ -25,6 +25,9 @@ export function DateRangeBookingWidget({
   vendorName,
   vendorSlug,
   touristName,
+  defaultStart,
+  defaultEnd,
+  today,
   startLabel = "Check-in",
   endLabel = "Check-out",
 }: {
@@ -38,12 +41,17 @@ export function DateRangeBookingWidget({
   vendorName: string;
   vendorSlug: string;
   touristName: string;
+  /** Server-resolved so the first client render matches the SSR markup. */
+  defaultStart: string;
+  defaultEnd: string;
+  /** Today, server-resolved — floors the pickers so past dates aren't offered. */
+  today: string;
   startLabel?: string;
   endLabel?: string;
 }) {
   const router = useRouter();
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  const [start, setStart] = useState(defaultStart);
+  const [end, setEnd] = useState(defaultEnd);
   const [unitCount, setUnitCount] = useState(1);
   const [guestCount, setGuestCount] = useState(1);
   const [contactName, setContactName] = useState(touristName);
@@ -109,8 +117,8 @@ export function DateRangeBookingWidget({
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <DateField label={startLabel} value={start} onChange={setStart} />
-        <DateField label={endLabel} value={end} min={start || undefined} onChange={setEnd} />
+        <DateField label={startLabel} value={start} min={today} onChange={setStart} />
+        <DateField label={endLabel} value={end} min={start || today} onChange={setEnd} />
       </div>
 
       <div className="mt-2 grid grid-cols-2 gap-2">

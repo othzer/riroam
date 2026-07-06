@@ -104,6 +104,7 @@ export function BookingCard({
   freeCancellationDays,
   availableFrom,
   availableTo,
+  defaultStartDate,
   vendorName,
   vendorSlug,
   touristName,
@@ -114,6 +115,9 @@ export function BookingCard({
   freeCancellationDays: number;
   availableFrom: string;
   availableTo: string;
+  /** Server-resolved and pre-clamped to the availability window, so the first
+      client render matches SSR and the value is always selectable. */
+  defaultStartDate: string;
   vendorName: string;
   vendorSlug: string;
   touristName: string;
@@ -121,7 +125,7 @@ export function BookingCard({
   const router = useRouter();
   const { extras, selected } = useExtras();
   const [travellers, setTravellers] = useState(2);
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(defaultStartDate);
   const [contactName, setContactName] = useState(touristName);
   const [contactPhone, setContactPhone] = useState("");
   const [pending, setPending] = useState(false);

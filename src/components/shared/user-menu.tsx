@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -48,10 +49,14 @@ export function UserMenu({
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
-          <p className="truncate text-sm font-medium text-ink">{name}</p>
-          <p className="truncate text-xs text-ink-muted">{email}</p>
-        </DropdownMenuLabel>
+        {/* Base UI's GroupLabel throws unless it has a Group ancestor, and the
+            throw takes the whole popup down with it — hence the wrapper. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <p className="truncate text-sm font-medium text-ink">{name}</p>
+            <p className="truncate text-xs text-ink-muted">{email}</p>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/trips")}>
           <Luggage /> My trips

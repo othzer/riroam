@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Star, BadgeCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { clampISODate, defaultBookingWindow, toISODate } from "@/lib/dates";
 import { DetailHeader } from "@/components/tourist/detail-header";
 import { DetailGallery } from "@/components/tourist/detail-gallery";
 import { DetailCard, ReviewsCard } from "@/components/tourist/detail-card";
@@ -45,6 +46,9 @@ export default async function PackageDetailPage({
     },
   });
   if (!pkg) notFound();
+
+  const availableFrom = toISODate(pkg.availableFrom);
+  const availableTo = toISODate(pkg.availableTo);
 
   const session = await auth();
 
@@ -131,8 +135,13 @@ export default async function PackageDetailPage({
               pricePerPerson={pkg.pricePerPerson}
               maxGroupSize={pkg.maxGroupSize}
               freeCancellationDays={pkg.freeCancellationDays}
-              availableFrom={pkg.availableFrom.toISOString().slice(0, 10)}
-              availableTo={pkg.availableTo.toISOString().slice(0, 10)}
+              availableFrom={availableFrom}
+              availableTo={availableTo}
+              defaultStartDate={clampISODate(
+                defaultBookingWindow().start,
+                availableFrom,
+                availableTo,
+              )}
               vendorName={pkg.vendor.businessName}
               vendorSlug={pkg.vendor.slug}
               touristName={session?.user?.name ?? ""}

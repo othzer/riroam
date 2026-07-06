@@ -97,12 +97,18 @@ export function HotelBookingCard({
   vendorName,
   vendorSlug,
   touristName,
+  defaultStart,
+  defaultEnd,
+  today,
 }: {
   hotelId: string;
   freeCancellationDays: number;
   vendorName: string;
   vendorSlug: string;
   touristName: string;
+  defaultStart: string;
+  defaultEnd: string;
+  today: string;
 }) {
   const { rooms, selectedId } = useRooms();
   const room = rooms.find((r) => r.id === selectedId) ?? rooms[0];
@@ -121,6 +127,9 @@ export function HotelBookingCard({
       vendorName={vendorName}
       vendorSlug={vendorSlug}
       touristName={touristName}
+      defaultStart={defaultStart}
+      defaultEnd={defaultEnd}
+      today={today}
     />
   );
 }

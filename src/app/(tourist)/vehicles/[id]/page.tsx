@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Star } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { defaultBookingWindow, toISODate } from "@/lib/dates";
 import { VehicleSpecGrid } from "@/components/shared/vehicle-spec-grid";
 import { DetailHeader } from "@/components/tourist/detail-header";
 import { DetailGallery } from "@/components/tourist/detail-gallery";
@@ -36,6 +37,7 @@ export default async function VehicleDetailPage({
   if (!vehicle) notFound();
 
   const session = await auth();
+  const bookingWindow = defaultBookingWindow();
 
   const reviews = await prisma.review.findMany({
     where: { vehicleId: vehicle.id },
@@ -110,6 +112,9 @@ export default async function VehicleDetailPage({
             vendorName={vehicle.vendor.businessName}
             vendorSlug={vehicle.vendor.slug}
             touristName={session?.user?.name ?? ""}
+            defaultStart={bookingWindow.start}
+            defaultEnd={bookingWindow.end}
+            today={toISODate(new Date())}
             startLabel="Pickup"
             endLabel="Return"
           />
