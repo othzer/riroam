@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut, Luggage, Store, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { LogOut, Luggage, Store, LayoutDashboard, ShieldCheck, UserRound } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -60,6 +60,9 @@ export function UserMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/trips")}>
           <Luggage /> My trips
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/profile")}>
+          <UserRound /> Profile
         </DropdownMenuItem>
         {role === "VENDOR" ? (
           <DropdownMenuItem onClick={() => router.push("/vendor/dashboard")}>

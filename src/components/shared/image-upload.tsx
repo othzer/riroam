@@ -23,6 +23,71 @@ function useUpload(folder: string) {
   return { uploading, upload };
 }
 
+/** Round avatar picker — same upload path as the cover picker, circular crop. */
+export function AvatarUpload({
+  folder,
+  value,
+  fallback,
+  onChange,
+}: {
+  folder: string;
+  value?: string;
+  fallback: string;
+  onChange: (url: string | undefined) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { uploading, upload } = useUpload(folder);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = await upload(file);
+    if (url) onChange(url);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative size-20 shrink-0 overflow-hidden rounded-full border border-border bg-pangong-tint">
+        {value ? (
+          <Image src={value} alt="" fill className="object-cover" sizes="80px" />
+        ) : (
+          <span className="flex size-full items-center justify-center font-heading text-xl font-bold text-pangong-deep">
+            {fallback}
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col items-start gap-1.5">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="inline-flex items-center gap-1.5 rounded-control border border-border bg-surface px-3 py-1.5 text-[13px] font-medium text-ink transition-colors hover:border-pangong hover:text-pangong disabled:opacity-60"
+        >
+          {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <ImagePlus className="size-3.5" />}
+          {uploading ? "Uploading…" : value ? "Change photo" : "Add photo"}
+        </button>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            className="text-[11.5px] text-ink-muted transition-colors hover:text-danger"
+          >
+            Remove photo
+          </button>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        className="hidden"
+      />
+    </div>
+  );
+}
+
 /** Single cover image (16:10). */
 export function SingleImageUpload({
   folder,

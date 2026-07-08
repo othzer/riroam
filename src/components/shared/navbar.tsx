@@ -25,7 +25,11 @@ export async function Navbar() {
             <Logo />
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
-            {LINKS.map((l) => (
+            {[
+              ...LINKS,
+              // Only worth a top-level slot once there's an account behind it.
+              ...(session?.user ? [{ href: "/trips", label: "My trips" }] : []),
+            ].map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
