@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RiRoam
 
-## Getting Started
+**Roam the land of high passes.** RiRoam is a Ladakh-first travel marketplace —
+book verified tour packages, hotels & homestays, and taxis & bikes, with a
+data-grounded AI trip planner.
 
-First, run the development server:
+> **ri (རི)** means _mountain_ in Ladakhi/Tibetan — RiRoam is _mountain roam_.
+> La-dags ≈ _land of high passes_.
+
+Altitude is a first-class element of the product: every listing carries a
+mono-font altitude chip, and package itineraries render as a day-by-day
+elevation profile with acclimatization days shaded.
+
+## Stack
+
+| Layer      | Choice                                             |
+| ---------- | -------------------------------------------------- |
+| Framework  | Next.js 16 (App Router) + TypeScript               |
+| Database   | PostgreSQL (Neon) + Prisma 6                        |
+| Auth       | Auth.js v5 — Credentials + Google, JWT sessions    |
+| UI         | Tailwind CSS v4 + shadcn/ui                         |
+| Validation | Zod + react-hook-form                              |
+| Payments   | Razorpay (test mode)                               |
+| Uploads    | Cloudinary                                          |
+| AI         | Google Gemini 2.5 Flash                            |
+| Email      | Resend + React Email                               |
+| Maps       | Leaflet + OpenStreetMap                            |
+
+## Getting started
 
 ```bash
+# 1. Install
+npm install
+
+# 2. Configure — copy the example and fill in your values
+cp .env.example .env
+
+# 3. Apply the schema to your database
+npm run db:migrate
+
+# 4. Seed the admin account (reads ADMIN_SEED_* from .env)
+npm run db:seed
+
+# 5. Run
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script                | Does                                    |
+| --------------------- | --------------------------------------- |
+| `npm run dev`         | Start the dev server                    |
+| `npm run build`       | Production build                        |
+| `npm run db:migrate`  | Create & apply a Prisma migration       |
+| `npm run db:seed`     | Seed the database                       |
+| `npm run db:studio`   | Open Prisma Studio                      |
+| `npm run db:reset`    | Drop, re-migrate, and re-seed           |
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+prisma/           schema + migrations + seed
+src/
+  app/            routes (App Router)
+  actions/        server actions, one file per domain
+  components/     ui · shared · tourist · vendor · admin
+  lib/            auth, prisma, validators, and domain helpers
+  types/          shared types + module augmentation
+```

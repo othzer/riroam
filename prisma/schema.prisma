@@ -1,0 +1,380 @@
+// RiRoam — Prisma schema
+// Money is stored as integer paise (₹1,499.00 -> 149900). Never floats for currency.
+// Booking dates are normalized to midnight UTC (date-only semantics).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TOURIST
+  VENDOR
+  ADMIN
+}
+
+enum VendorStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum BusinessType {
+  TOUR_AGENCY
+  HOTEL
+  HOMESTAY
+  VEHICLE_RENTAL
+}
+
+enum PropertyType {
+  HOTEL
+  HOMESTAY
+}
+
+enum VehicleType {
+  TAXI
+  BIKE
+}
+
+enum BookingType {
+  PACKAGE
+  HOTEL
+  VEHICLE
+}
+
+enum BookingStatus {
+  PENDING // created, awaiting payment; holds inventory until expiresAt
+  CONFIRMED // payment verified
+  COMPLETED // endDate passed (flipped by cron)
+  CANCELLED // by tourist, vendor, admin, or payment expiry
+}
+
+enum PaymentStatus {
+  CREATED // Razorpay order created
+  PAID // signature/webhook verified
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String? // null for OAuth-only users
+  image         String?
+  role          Role      @default(TOURIST)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+
+  accounts       Account[]
+  vendorProfile  VendorProfile?
+  bookings       Booking[]
+  reviews        Review[]
+  itineraryPlans ItineraryPlan[]
+}
+
+// Standard Auth.js account model for OAuth
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model VendorProfile {
+  id                 String       @id @default(cuid())
+  userId             String       @unique
+  businessName       String
+  slug               String       @unique // public storefront URL: /vendors/[slug]
+  businessType       BusinessType
+  description        String?
+  phone              String
+  city               String
+  state              String
+  serviceAreas       String[] // cities/regions served
+  gstNumber          String?
+  verificationDocUrl String // Cloudinary URL, admin-only visibility
+  status             VendorStatus @default(PENDING_REVIEW)
+  rejectionReason    String?
+  // storefront lite-customization
+  logoUrl            String?
+  bannerUrl          String?
+  accentColor        String? // hex, applied to storefront accents
+  tagline            String?
+  approvedAt         DateTime?
+  createdAt          DateTime     @default(now())
+
+  user     User             @relation(fields: [userId], references: [id])
+  packages Package[]
+  hotels   Hotel[]
+  vehicles VehicleListing[]
+  bookings Booking[]
+  reviews  Review[]
+
+  @@index([status])
+}
+
+model Package {
+  id                   String   @id @default(cuid())
+  vendorId             String
+  title                String
+  slug                 String   @unique
+  description          String
+  destinations         String[] // e.g. ["Manali", "Kasol"]
+  startCity            String // where the tour begins — primary search field
+  durationDays         Int
+  durationNights       Int
+  maxAltitudeMeters    Int      @default(0) // computed on save = max(itineraryDays.altitudeMeters); drives altitude chips + elevation profile
+  pricePerPerson       Int // paise
+  maxGroupSize         Int
+  availableFrom        DateTime
+  availableTo          DateTime
+  freeCancellationDays Int      @default(3) // full refund if cancelled >= N days before start
+  coverImageUrl        String
+  imageUrls            String[]
+  isPublished          Boolean  @default(false)
+  avgRating            Float    @default(0)
+  reviewCount          Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  vendor        VendorProfile  @relation(fields: [vendorId], references: [id])
+  itineraryDays ItineraryDay[]
+  extras        Extra[]
+  bookings      Booking[]
+
+  @@index([startCity, isPublished])
+  @@index([vendorId])
+}
+
+model ItineraryDay {
+  id             String @id @default(cuid())
+  packageId      String
+  dayNumber      Int
+  title          String // "Day 3 — Khardung La to Nubra"
+  location       String
+  altitudeMeters Int // highest point reached that day; feeds the elevation-profile UI + acclimatization callout
+  description    String
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, dayNumber])
+}
+
+model Extra {
+  id          String  @id @default(cuid())
+  packageId   String
+  name        String // "Local guide", "Travel insurance", "Airport transfer"
+  description String?
+  price       Int // paise, per booking (not per person — keep simple)
+
+  package       Package        @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  bookingExtras BookingExtra[]
+}
+
+model Hotel {
+  id                   String       @id @default(cuid())
+  vendorId             String
+  name                 String
+  slug                 String       @unique
+  propertyType         PropertyType
+  description          String
+  address              String
+  city                 String
+  state                String
+  latitude             Float?
+  longitude            Float?
+  altitudeMeters       Int? // shown as an altitude chip on cards/detail (Ladakh-relevant)
+  amenities            String[] // ["wifi","parking","breakfast",...]
+  freeCancellationDays Int          @default(2)
+  coverImageUrl        String
+  imageUrls            String[]
+  isPublished          Boolean      @default(false)
+  avgRating            Float        @default(0)
+  reviewCount          Int          @default(0)
+  createdAt            DateTime     @default(now())
+
+  vendor   VendorProfile @relation(fields: [vendorId], references: [id])
+  rooms    Room[]
+  bookings Booking[]
+
+  @@index([city, isPublished])
+  @@index([vendorId])
+}
+
+model Room {
+  id            String   @id @default(cuid())
+  hotelId       String
+  name          String // "Deluxe Double"
+  description   String?
+  pricePerNight Int // paise
+  capacity      Int // guests per room
+  totalUnits    Int // how many physical rooms of this type exist
+  amenities     String[]
+  imageUrls     String[]
+
+  hotel    Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+}
+
+model VehicleListing {
+  id                   String      @id @default(cuid())
+  vendorId             String
+  vehicleType          VehicleType
+  title                String // "Swift Dzire with driver" / "Royal Enfield Classic 350"
+  brand                String
+  model                String
+  city                 String
+  state                String
+  pricePerDay          Int // paise
+  seats                Int? // taxis
+  transmission         String? // bikes/taxis: "manual" | "automatic"
+  fuelType             String?
+  totalUnits           Int         @default(1) // fleet owners can list N identical vehicles
+  freeCancellationDays Int         @default(1)
+  coverImageUrl        String
+  imageUrls            String[]
+  isPublished          Boolean     @default(false)
+  avgRating            Float       @default(0)
+  reviewCount          Int         @default(0)
+  createdAt            DateTime    @default(now())
+
+  vendor   VendorProfile @relation(fields: [vendorId], references: [id])
+  bookings Booking[]
+
+  @@index([city, vehicleType, isPublished])
+  @@index([vendorId])
+}
+
+model Booking {
+  id          String      @id @default(cuid())
+  bookingCode String      @unique // human-readable: "RR-7F3K2M"
+  touristId   String
+  vendorId    String // denormalized from listing → one indexed query for vendor dashboard
+  bookingType BookingType
+  // exactly one of these is set, matching bookingType (checked in app code)
+  packageId   String?
+  hotelId     String? // set alongside roomId for hotel bookings
+  roomId      String?
+  vehicleId   String?
+
+  startDate  DateTime // check-in / pickup / tour start (date-only semantics, stored midnight UTC)
+  endDate    DateTime // check-out / return / tour end
+  guestCount Int
+  unitCount  Int      @default(1) // rooms or vehicles booked
+
+  baseAmount   Int // paise, server-computed
+  extrasAmount Int    @default(0)
+  totalAmount  Int
+  currency     String @default("INR")
+
+  status             BookingStatus @default(PENDING)
+  expiresAt          DateTime? // PENDING hold deadline (now + 20 min)
+  cancelledAt        DateTime?
+  cancellationReason String?
+  refundAmount       Int? // paise, set on cancellation per policy
+
+  contactName  String
+  contactPhone String
+  createdAt    DateTime @default(now())
+
+  tourist       User            @relation(fields: [touristId], references: [id])
+  vendor        VendorProfile   @relation(fields: [vendorId], references: [id])
+  package       Package?        @relation(fields: [packageId], references: [id])
+  hotel         Hotel?          @relation(fields: [hotelId], references: [id])
+  room          Room?           @relation(fields: [roomId], references: [id])
+  vehicle       VehicleListing? @relation(fields: [vehicleId], references: [id])
+  payment       Payment?
+  review        Review?
+  bookingExtras BookingExtra[]
+
+  @@index([roomId, status, startDate, endDate]) // availability query
+  @@index([vehicleId, status, startDate, endDate]) // availability query
+  @@index([touristId, createdAt]) // My Trips
+  @@index([vendorId, status, createdAt]) // vendor dashboard
+}
+
+model BookingExtra {
+  id            String @id @default(cuid())
+  bookingId     String
+  extraId       String
+  nameSnapshot  String // name at booking time
+  priceSnapshot Int // paise at booking time
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  extra   Extra   @relation(fields: [extraId], references: [id])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String        @unique
+  razorpayOrderId   String        @unique
+  razorpayPaymentId String?
+  amount            Int // paise (Razorpay's native unit — convenient)
+  currency          String        @default("INR")
+  status            PaymentStatus @default(CREATED)
+  refundId          String?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Review {
+  id        String @id @default(cuid())
+  bookingId String @unique // one review per booking — integrity by schema, not just code
+  touristId String
+  vendorId  String
+  // denormalized target for listing-page queries
+  packageId String?
+  hotelId   String?
+  vehicleId String?
+  rating    Int // 1–5, validated in Zod
+  title     String?
+  comment   String
+  vendorReply String?
+  repliedAt DateTime?
+  createdAt DateTime @default(now())
+
+  booking Booking       @relation(fields: [bookingId], references: [id])
+  tourist User          @relation(fields: [touristId], references: [id])
+  vendor  VendorProfile @relation(fields: [vendorId], references: [id])
+
+  @@index([packageId])
+  @@index([hotelId])
+  @@index([vehicleId])
+}
+
+model ItineraryPlan {
+  id           String    @id @default(cuid())
+  userId       String? // nullable — guests can try it (rate-limited harder)
+  destinations String[]
+  budgetMin    Int // paise
+  budgetMax    Int
+  days         Int
+  startDate    DateTime?
+  groupSize    Int
+  interests    String[] // ["adventure","food","culture",...]
+  candidateIds String[] // listing IDs sent to the LLM (audit trail)
+  resultJson   Json // validated structured plan
+  createdAt    DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt]) // used for the daily rate limit
+}
