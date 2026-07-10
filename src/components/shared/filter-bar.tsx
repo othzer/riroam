@@ -36,9 +36,11 @@ export function FilterBar({
   variant: Variant;
   searchParams: SearchParams;
 }) {
-  const active = Object.entries(sp).filter(
-    ([k, v]) => k !== "page" && v !== undefined && v !== "",
-  ) as [string, string][];
+  // Only allowlisted, known filter keys can produce a chip — an arbitrary or
+  // repeated (string[]) searchParam is ignored rather than rendered raw.
+  const active = (Object.keys(FILTER_LABELS) as (keyof typeof FILTER_LABELS)[])
+    .map((key) => [key, first(sp[key])] as const)
+    .filter((entry): entry is [string, string] => !!entry[1]);
 
   return (
     <div className="mb-6">

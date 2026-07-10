@@ -17,7 +17,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const vendor = await prisma.vendorProfile.findUnique({
-    where: { slug },
+    where: { slug, status: "APPROVED" },
     select: { businessName: true },
   });
   return { title: vendor?.businessName ?? "Storefront" };
@@ -56,11 +56,15 @@ export default async function VendorStorefrontPage({
     }),
   ]);
 
-  const listingCount = vendor.packages.length + vendor.hotels.length + vendor.vehicles.length;
+  // A hotel with no room types isn't bookable — excluded here and from
+  // hotelCards below so the stats row matches what's actually rendered.
+  const bookableHotels = vendor.hotels.filter((h) => h.rooms.length > 0);
+
+  const listingCount = vendor.packages.length + bookableHotels.length + vendor.vehicles.length;
   const avgRating =
     listingCount === 0
       ? 0
-      : [...vendor.packages, ...vendor.hotels, ...vendor.vehicles].reduce(
+      : [...vendor.packages, ...bookableHotels, ...vendor.vehicles].reduce(
           (sum, l) => sum + l.avgRating,
           0,
         ) / listingCount;
@@ -80,8 +84,7 @@ export default async function VendorStorefrontPage({
     altitudeMeters: p.maxAltitudeMeters,
   }));
 
-  const hotelCards: ListingCardData[] = vendor.hotels
-    .filter((h) => h.rooms.length > 0)
+  const hotelCards: ListingCardData[] = bookableHotels
     .map((h) => ({
       href: `/hotels/${h.slug}`,
       kind: "hotel",

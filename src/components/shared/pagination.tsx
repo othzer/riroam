@@ -48,7 +48,10 @@ function PageLink({
 } & React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   if (disabled) {
     return (
-      <span className="flex size-8 items-center justify-center rounded-control border border-border text-ink-muted opacity-40">
+      <span
+        className="flex size-8 items-center justify-center rounded-control border border-border text-ink-muted opacity-40"
+        {...rest}
+      >
         {children}
       </span>
     );

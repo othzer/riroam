@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Ridge } from "@/components/shared/ridge";
+import { cn } from "@/lib/utils";
 
 export type ListingKind = "package" | "hotel" | "vehicle";
 
@@ -29,7 +30,11 @@ export function ListingImage({
   priority?: boolean;
   className?: string;
 }) {
-  const [errored, setErrored] = useState(false);
+  // Tracks which src last failed, rather than a plain boolean, so a component
+  // instance reused for a different (working) src isn't stuck on the
+  // placeholder — no effect needed, it just falls out of the comparison.
+  const [erroredSrc, setErroredSrc] = useState<string | null>(null);
+  const errored = src != null && src === erroredSrc;
   const palette = PLACEHOLDER[kind];
 
   if (!src || errored) {
@@ -50,8 +55,8 @@ export function ListingImage({
       fill
       sizes={sizes}
       priority={priority}
-      className="object-cover"
-      onError={() => setErrored(true)}
+      className={cn("object-cover", className)}
+      onError={() => setErroredSrc(src)}
     />
   );
 }
