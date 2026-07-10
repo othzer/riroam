@@ -11,18 +11,23 @@ export type RoomOption = {
   description: string | null;
   pricePerNight: number;
   capacity: number;
+  totalUnits: number;
 };
 
 export function HotelBookingSection({
+  hotelId,
   rooms,
   freeCancellationDays,
   vendorName,
   vendorSlug,
+  touristName,
 }: {
+  hotelId: string;
   rooms: RoomOption[];
   freeCancellationDays: number;
   vendorName: string;
   vendorSlug: string;
+  touristName: string;
 }) {
   const [selectedId, setSelectedId] = useState(rooms[0]?.id);
   const selected = rooms.find((r) => r.id === selectedId) ?? rooms[0];
@@ -63,11 +68,17 @@ export function HotelBookingSection({
       <div className="lg:sticky lg:top-24 lg:h-fit">
         {selected && (
           <DateRangeBookingWidget
+            key={selected.id}
+            target={{ bookingType: "HOTEL", hotelId, roomId: selected.id }}
             pricePerUnit={selected.pricePerNight}
             unitLabel="night"
+            unitNoun="Rooms"
+            maxUnits={selected.totalUnits}
+            maxGuestsPerUnit={selected.capacity}
             freeCancellationDays={freeCancellationDays}
             vendorName={vendorName}
             vendorSlug={vendorSlug}
+            touristName={touristName}
           />
         )}
       </div>

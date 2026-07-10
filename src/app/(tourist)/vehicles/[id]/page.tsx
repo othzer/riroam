@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { ListingImage } from "@/components/shared/listing-image";
 import { RatingStars } from "@/components/shared/rating-stars";
 import { VehicleSpecGrid } from "@/components/shared/vehicle-spec-grid";
@@ -34,6 +35,8 @@ export default async function VehicleDetailPage({
     include: { vendor: { select: { businessName: true, slug: true } } },
   });
   if (!vehicle) notFound();
+
+  const session = await auth();
 
   const reviews = await prisma.review.findMany({
     where: { vehicleId: vehicle.id },
@@ -110,11 +113,16 @@ export default async function VehicleDetailPage({
 
         <div className="lg:sticky lg:top-24 lg:h-fit">
           <DateRangeBookingWidget
+            target={{ bookingType: "VEHICLE", vehicleId: vehicle.id }}
             pricePerUnit={vehicle.pricePerDay}
             unitLabel="day"
+            unitNoun="Vehicles"
+            maxUnits={vehicle.totalUnits}
+            maxGuestsPerUnit={vehicle.seats ?? 4}
             freeCancellationDays={vehicle.freeCancellationDays}
             vendorName={vehicle.vendor.businessName}
             vendorSlug={vehicle.vendor.slug}
+            touristName={session?.user?.name ?? ""}
             startLabel="Pickup"
             endLabel="Return"
           />
