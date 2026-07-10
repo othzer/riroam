@@ -3,12 +3,33 @@ import type { Metadata } from "next";
 import { VendorStatus } from "@prisma/client";
 import { Clock, CheckCircle2, XCircle, Ban } from "lucide-react";
 import { requireVendor } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Vendor dashboard" };
 
 export default async function VendorDashboardPage() {
   const { vendor } = await requireVendor();
+
+  const where = { vendorId: vendor.id };
+  const wherePublished = { vendorId: vendor.id, isPublished: true };
+  const [
+    pkgActive,
+    hotelActive,
+    vehActive,
+    pkgTotal,
+    hotelTotal,
+    vehTotal,
+  ] = await Promise.all([
+    prisma.package.count({ where: wherePublished }),
+    prisma.hotel.count({ where: wherePublished }),
+    prisma.vehicleListing.count({ where: wherePublished }),
+    prisma.package.count({ where }),
+    prisma.hotel.count({ where }),
+    prisma.vehicleListing.count({ where }),
+  ]);
+  const activeListings = pkgActive + hotelActive + vehActive;
+  const totalListings = pkgTotal + hotelTotal + vehTotal;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -24,13 +45,14 @@ export default async function VendorDashboardPage() {
         rejectionReason={vendor.rejectionReason}
       />
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <PlaceholderCard label="Active listings" />
-        <PlaceholderCard label="Pending bookings" />
-        <PlaceholderCard label="Avg rating" />
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Active listings" value={String(activeListings)} />
+        <StatCard label="Total listings" value={String(totalListings)} />
+        <StatCard label="Pending bookings" value="—" />
+        <StatCard label="Avg rating" value="—" />
       </div>
       <p className="mt-6 text-sm text-ink-muted">
-        Listings, bookings, and reviews arrive in the next phase.
+        Bookings and reviews arrive in later phases.
       </p>
     </div>
   );
@@ -97,11 +119,11 @@ function StatusBanner({
   );
 }
 
-function PlaceholderCard({ label }: { label: string }) {
+function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-card border border-border bg-surface p-5">
       <p className="text-sm text-ink-muted">{label}</p>
-      <p className="mt-1 font-mono text-2xl font-medium text-ink">—</p>
+      <p className="mt-1 font-mono text-2xl font-medium text-ink">{value}</p>
     </div>
   );
 }
