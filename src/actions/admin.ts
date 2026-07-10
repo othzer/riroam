@@ -42,7 +42,11 @@ export async function approveVendor(id: string): Promise<ActionResult> {
     },
   });
 
-  await sendVendorApprovedEmail(vendor.user.email, vendor.user.name);
+  try {
+    await sendVendorApprovedEmail(vendor.user.email, vendor.user.name);
+  } catch (e) {
+    console.error("approveVendor: failed to send email:", e);
+  }
   revalidateAdmin();
   return { ok: true };
 }

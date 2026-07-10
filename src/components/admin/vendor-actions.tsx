@@ -33,15 +33,19 @@ export function VendorActions({
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) {
     startTransition(async () => {
-      const res = await fn();
-      if (!res.ok) {
-        toast.error(res.error ?? "Something went wrong");
-        return;
+      try {
+        const res = await fn();
+        if (!res.ok) {
+          toast.error(res.error ?? "Something went wrong");
+          return;
+        }
+        toast.success(ok);
+        setRejectOpen(false);
+        setReason("");
+        router.refresh();
+      } catch {
+        toast.error("Something went wrong — try again");
       }
-      toast.success(ok);
-      setRejectOpen(false);
-      setReason("");
-      router.refresh();
     });
   }
 

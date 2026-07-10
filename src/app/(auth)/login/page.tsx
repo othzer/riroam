@@ -14,7 +14,13 @@ export default async function LoginPage({
   const session = await auth();
   if (session?.user) redirect("/");
 
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl: rawCallbackUrl } = await searchParams;
+  // Only allow same-origin relative paths — never an absolute/protocol-relative
+  // URL, which would let a crafted link redirect the user off-site after login.
+  const callbackUrl =
+    rawCallbackUrl?.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : undefined;
 
   return (
     <div className="rounded-card border border-border bg-surface p-6 shadow-sm">

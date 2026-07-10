@@ -26,36 +26,40 @@ export function RegisterForm() {
 
   async function onSubmit(values: RegisterInput) {
     setPending(true);
-    const res = await registerUser(values);
+    try {
+      const res = await registerUser(values);
 
-    if (!res.ok) {
-      setPending(false);
-      if (res.fieldErrors) {
-        for (const [field, messages] of Object.entries(res.fieldErrors)) {
-          if (messages?.[0]) {
-            setError(field as keyof RegisterInput, { message: messages[0] });
+      if (!res.ok) {
+        if (res.fieldErrors) {
+          for (const [field, messages] of Object.entries(res.fieldErrors)) {
+            if (messages?.[0]) {
+              setError(field as keyof RegisterInput, { message: messages[0] });
+            }
           }
         }
+        toast.error(res.error);
+        return;
       }
-      toast.error(res.error);
-      return;
-    }
 
-    // Auto sign-in after registering.
-    const signInRes = await signIn("credentials", {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    });
-    setPending(false);
+      // Auto sign-in after registering.
+      const signInRes = await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      });
 
-    if (signInRes?.error) {
-      toast.error("Account created — please sign in");
-      router.push("/login");
-      return;
+      if (signInRes?.error) {
+        toast.error("Account created — please sign in");
+        router.push("/login");
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong — try again");
+    } finally {
+      setPending(false);
     }
-    router.push("/");
-    router.refresh();
   }
 
   return (

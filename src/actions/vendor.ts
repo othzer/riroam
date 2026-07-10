@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Role, VendorStatus } from "@prisma/client";
+import { Prisma, Role, VendorStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser, unstable_update } from "@/lib/auth";
 import { uniqueVendorSlug } from "@/lib/slug";
@@ -62,21 +62,40 @@ export async function submitVendorOnboarding(
       },
     });
   } else {
-    const slug = await uniqueVendorSlug(data.businessName);
-    await prisma.$transaction([
-      prisma.vendorProfile.create({
-        data: {
-          userId,
-          slug,
-          status: VendorStatus.PENDING_REVIEW,
-          ...fields,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: { role: Role.VENDOR },
-      }),
-    ]);
+    // uniqueVendorSlug's check isn't atomic, so two concurrent onboardings with
+    // the same business name could pick the same slug. The DB @unique constraint
+    // still protects us; on a slug collision (P2002) we regenerate and retry.
+    for (let attempt = 0; ; attempt++) {
+      const slug = await uniqueVendorSlug(data.businessName);
+      try {
+        await prisma.$transaction([
+          prisma.vendorProfile.create({
+            data: {
+              userId,
+              slug,
+              status: VendorStatus.PENDING_REVIEW,
+              ...fields,
+            },
+          }),
+          prisma.user.update({
+            where: { id: userId },
+            data: { role: Role.VENDOR },
+          }),
+        ]);
+        break;
+      } catch (e) {
+        const target =
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === "P2002"
+            ? e.meta?.target
+            : undefined;
+        const isSlugCollision = Array.isArray(target)
+          ? target.includes("slug")
+          : String(target ?? "").includes("slug");
+        if (isSlugCollision && attempt < 3) continue;
+        throw e;
+      }
+    }
   }
 
   // Refresh the token so role=VENDOR is reflected immediately.
