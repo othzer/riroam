@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, UploadCloud, FileCheck2, X } from "lucide-react";
-import { getSignedUploadParams } from "@/actions/uploads";
+import { uploadToCloudinary } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
 type FileUploadProps = {
@@ -30,22 +30,8 @@ export function FileUpload({
 
     setUploading(true);
     try {
-      const params = await getSignedUploadParams(folder);
-      const form = new FormData();
-      form.append("file", file);
-      form.append("api_key", params.apiKey);
-      form.append("timestamp", String(params.timestamp));
-      form.append("signature", params.signature);
-      form.append("folder", params.folder);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${params.cloudName}/auto/upload`,
-        { method: "POST", body: form },
-      );
-      if (!res.ok) throw new Error("upload failed");
-
-      const data = (await res.json()) as { secure_url: string };
-      onChange(data.secure_url);
+      const url = await uploadToCloudinary(file, folder);
+      onChange(url);
       toast.success("File uploaded");
     } catch {
       toast.error("Upload failed — try again");
