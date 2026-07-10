@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { acclimatizeDayCount } from "@/lib/itinerary";
 
 // Signature UI: a package itinerary rendered as a day-by-day elevation profile.
 // Pure SVG (no chart lib). Geometry follows the design spec §10 exactly.
@@ -39,16 +40,6 @@ const GRIDLINES = [
   { alt: 4500, label: "4.5k" },
   { alt: 5500, label: "5.5k" },
 ];
-
-// Acclimatization band: leading days (from day 1) that stay at/below 3,600 m.
-function acclimatizeCount(days: ElevationDay[]) {
-  let n = 0;
-  for (const d of days) {
-    if (d.altitudeMeters <= 3600) n += 1;
-    else break;
-  }
-  return n;
-}
 
 export function ElevationProfile({
   days,
@@ -103,7 +94,7 @@ export function ElevationProfile({
     points.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ") +
     ` L ${points[points.length - 1].x.toFixed(1)} ${PLOT_BOTTOM} Z`;
 
-  const accCount = acclimatizeCount(days);
+  const accCount = acclimatizeDayCount(days);
 
   return (
     <svg
