@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 // This just tidies up stale rows so they don't linger in dashboards/queries.
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
