@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { generateBookingCode } from "@/lib/booking-code";
@@ -11,13 +12,16 @@ import {
   computeExtrasAmount,
   unitsBetween,
 } from "@/lib/pricing";
-import { createRazorpayOrder } from "@/lib/razorpay";
+import { createRazorpayOrder, refundPayment } from "@/lib/razorpay";
+import { computeRefund } from "@/lib/refund";
+import { sendBookingCancelledEmail } from "@/lib/mail";
 import {
   createBookingSchema,
   type CreateBookingInput,
 } from "@/lib/validators/booking";
 
 type Result = { ok: true; bookingId: string } | { ok: false; error: string };
+type SimpleResult = { ok: true } | { ok: false; error: string };
 
 const HOLD_MINUTES = 20;
 
@@ -276,4 +280,89 @@ async function createVehicleBooking(
 
   await attachRazorpayOrder(bookingId, bookingCode, totalAmount);
   return { ok: true, bookingId };
+}
+
+/**
+ * Cancel a booking (tourist-initiated). Ownership + status + timing are all
+ * re-validated server-side, the refund is recomputed here (never trusting the
+ * client's preview), and the PENDING/CONFIRMED -> CANCELLED transition is a
+ * guarded atomic updateMany so two concurrent cancels can't both fire the
+ * Razorpay refund.
+ */
+export async function cancelBooking(bookingId: string): Promise<SimpleResult> {
+  const session = await requireUser();
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      payment: true,
+      tourist: { select: { email: true } },
+      package: { select: { freeCancellationDays: true } },
+      hotel: { select: { freeCancellationDays: true } },
+      vehicle: { select: { freeCancellationDays: true } },
+    },
+  });
+  if (!booking || booking.touristId !== session.user.id) {
+    return { ok: false, error: "Booking not found" };
+  }
+
+  const freeCancellationDays =
+    booking.package?.freeCancellationDays ??
+    booking.hotel?.freeCancellationDays ??
+    booking.vehicle?.freeCancellationDays ??
+    0;
+  const isPaid = booking.payment?.status === "PAID";
+
+  const quote = computeRefund({
+    status: booking.status,
+    isPaid,
+    startDate: booking.startDate,
+    freeCancellationDays,
+    totalAmount: booking.totalAmount,
+  });
+  if (!quote.canCancel) {
+    return { ok: false, error: quote.reason ?? "This booking can't be cancelled" };
+  }
+
+  // Guarded transition — only the caller that actually flips the row proceeds
+  // to refund, so a double-submit can't double-refund.
+  const flipped = await prisma.booking.updateMany({
+    where: { id: booking.id, status: { in: ["PENDING", "CONFIRMED"] } },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+      cancellationReason: "Cancelled by traveller",
+      refundAmount: quote.refundAmount,
+    },
+  });
+  if (flipped.count === 0) {
+    return { ok: false, error: "This booking is no longer cancellable" };
+  }
+
+  // Refund runs after the status flip and outside any transaction — an
+  // external call must never hold a DB transaction open.
+  if (isPaid && quote.refundAmount > 0 && booking.payment?.razorpayPaymentId) {
+    try {
+      const refund = await refundPayment(booking.payment.razorpayPaymentId, quote.refundAmount);
+      await prisma.payment.update({
+        where: { id: booking.payment.id },
+        data: { status: "REFUNDED", refundId: refund.id },
+      });
+    } catch (e) {
+      console.error("cancelBooking: refund failed:", e);
+      // Booking stays CANCELLED; the refund is a reconciliation concern.
+    }
+  }
+
+  try {
+    await sendBookingCancelledEmail(booking.tourist.email, {
+      bookingCode: booking.bookingCode,
+      refundAmount: quote.refundAmount,
+    });
+  } catch (e) {
+    console.error("cancelBooking: email failed:", e);
+  }
+
+  revalidatePath("/trips");
+  return { ok: true };
 }
