@@ -21,3 +21,7 @@ export function addDays(d: Date, days: number): Date {
   copy.setUTCDate(copy.getUTCDate() + days);
   return copy;
 }
+
+export function isExpired(expiresAt: Date | null): boolean {
+  return !expiresAt || expiresAt.getTime() - Date.now() <= 0;
+}
