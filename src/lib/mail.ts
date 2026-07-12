@@ -73,6 +73,24 @@ export async function sendBookingConfirmedEmail(
   });
 }
 
+export async function sendBookingCancelledEmail(
+  to: string,
+  booking: { bookingCode: string; refundAmount: number },
+) {
+  const refundLine =
+    booking.refundAmount > 0
+      ? `<p>A refund of ${escapeHtml(formatINR(booking.refundAmount))} is being processed to your original payment method.</p>`
+      : `<p>No payment had been captured, so there's nothing to refund.</p>`;
+  await send({
+    to,
+    subject: `Booking cancelled — ${booking.bookingCode}`,
+    html: layout(
+      `<p>Your booking <span style="font-family:monospace">${escapeHtml(booking.bookingCode)}</span> has been cancelled.</p>
+       ${refundLine}`,
+    ),
+  });
+}
+
 export async function sendNewBookingReceivedEmail(
   to: string,
   vendorName: string,
