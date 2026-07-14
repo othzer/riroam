@@ -15,6 +15,16 @@ function getClient(): Resend | null {
   return key ? new Resend(key) : null;
 }
 
+/**
+ * `t***@example.com` — enough to tell which account a bounce belongs to
+ * without writing a subscriber's address into the logs.
+ */
+function redactEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  if (at <= 0) return "***";
+  return `${email[0]}***${email.slice(at)}`;
+}
+
 async function send(opts: { to: string; subject: string; html: string }) {
   const client = getClient();
   if (!client) {
@@ -27,7 +37,10 @@ async function send(opts: { to: string; subject: string; html: string }) {
     // the error field is the only thing that surfaces a refused recipient.
     const { error } = await client.emails.send({ from: FROM, ...opts });
     if (error) {
-      console.error(`[mail] rejected "${opts.subject}" → ${opts.to}:`, error);
+      console.error(
+        `[mail] rejected "${opts.subject}" → ${redactEmail(opts.to)}:`,
+        error,
+      );
     }
   } catch (err) {
     console.error("[mail] send failed:", err);

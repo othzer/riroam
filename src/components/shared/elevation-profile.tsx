@@ -1,8 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 import { acclimatizeDayCount } from "@/lib/itinerary";
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onChange: () => void) {
+  const mq = window.matchMedia(REDUCED_MOTION_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/**
+ * Read as an external store rather than probed inside an effect. Setting state
+ * synchronously from an effect costs an extra render pass, and the server
+ * snapshot keeps the first client render identical to the SSR markup.
+ */
+function usePrefersReducedMotion() {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    () => false,
+  );
+}
 
 // Signature UI: a package itinerary rendered as a day-by-day elevation profile.
 // Pure SVG (no chart lib). Geometry follows the design spec §10 exactly.
@@ -51,23 +72,18 @@ export function ElevationProfile({
   animate?: boolean;
 }) {
   const ref = useRef<SVGSVGElement>(null);
-  const [visible, setVisible] = useState(!animate);
+  const reducedMotion = usePrefersReducedMotion();
+  const shouldAnimate = animate && !reducedMotion;
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    if (!animate) return;
-    const reduce = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    if (reduce) {
-      setVisible(true);
-      return;
-    }
+    if (!shouldAnimate) return;
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisible(true);
+          setRevealed(true);
           obs.disconnect();
         }
       },
@@ -75,7 +91,10 @@ export function ElevationProfile({
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [animate]);
+  }, [shouldAnimate]);
+
+  // Nothing to reveal when we're not animating, so the chart starts drawn.
+  const visible = !shouldAnimate || revealed;
 
   if (days.length === 0) return null;
 
@@ -162,7 +181,7 @@ export function ElevationProfile({
         fill="var(--pangong-tint)"
         style={{
           opacity: visible ? 1 : 0,
-          transition: animate ? "opacity 600ms ease" : undefined,
+          transition: shouldAnimate ? "opacity 600ms ease" : undefined,
         }}
       />
       <path
@@ -176,7 +195,7 @@ export function ElevationProfile({
         style={{
           strokeDasharray: 1,
           strokeDashoffset: visible ? 0 : 1,
-          transition: animate ? "stroke-dashoffset 600ms ease" : undefined,
+          transition: shouldAnimate ? "stroke-dashoffset 600ms ease" : undefined,
         }}
       />
 
