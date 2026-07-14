@@ -125,11 +125,10 @@ export function RazorpayButton({
         },
       },
     });
-    rzp.on("payment.failed", () => {
-      settled.current = true;
-      setPending(false);
-      router.push(`/checkout/${bookingId}/result`);
-    });
+    // Deliberately no payment.failed handler: Razorpay keeps the modal open
+    // after a declined attempt so the user can retry on the same order, and
+    // navigating out from under it would throw that away. Giving up closes the
+    // modal, which is already the ondismiss path above.
     rzp.open();
   }
 
