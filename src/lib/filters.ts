@@ -38,14 +38,29 @@ function minRating(sp: SearchParams) {
   return Number.isFinite(r) && r > 0 ? r : undefined;
 }
 
+/**
+ * A `yyyy-mm-dd` search param, or undefined if absent or malformed. Guards the
+ * Date constructor against junk in a user-editable query string.
+ */
+export function isoDateParam(sp: SearchParams, key: string): Date | undefined {
+  const raw = first(sp[key])?.trim();
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return undefined;
+  const d = new Date(`${raw}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
 export function buildPackageWhere(sp: SearchParams): Prisma.PackageWhereInput {
   const destination = first(sp.destination)?.trim();
   const duration = Number(first(sp.duration));
   const { min, max } = budgetRangePaise(sp);
   const rating = minRating(sp);
+  const from = isoDateParam(sp, "from");
 
   return {
     isPublished: true,
+    // "Starting from" — keep circuits whose availability window still has room
+    // on or after the chosen date.
+    ...(from && { availableTo: { gte: from } }),
     ...(destination && {
       OR: [
         { startCity: { contains: destination, mode: "insensitive" } },
