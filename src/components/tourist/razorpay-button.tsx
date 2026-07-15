@@ -48,21 +48,22 @@ export function RazorpayButton({
   const router = useRouter();
   const [scriptReady, setScriptReady] = useState(false);
   const [pending, setPending] = useState(false);
-  const [expired, setExpired] = useState(
-    () => !!expiresAt && new Date(expiresAt).getTime() <= Date.now(),
-  );
+  // Deterministic initial value — no Date.now() during render, so server and
+  // client hydrate identically.
+  const [expired, setExpired] = useState(false);
 
   // The server already refuses expired holds at page load; this covers the
   // user who sits on the page past the deadline — the button locks and a
-  // refresh swaps in the server-rendered "hold expired" state.
+  // refresh swaps in the server-rendered "hold expired" state. A hold that has
+  // somehow already lapsed on mount clamps the delay to 0 and fires next tick,
+  // so we never setState synchronously during the effect.
   useEffect(() => {
     if (!expiresAt) return;
     const remaining = new Date(expiresAt).getTime() - Date.now();
-    if (remaining <= 0) return; // initial state already caught it
     const timer = setTimeout(() => {
       setExpired(true);
       router.refresh();
-    }, remaining);
+    }, Math.max(0, remaining));
     return () => clearTimeout(timer);
   }, [expiresAt, router]);
 
