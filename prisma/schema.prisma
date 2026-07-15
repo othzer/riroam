@@ -310,14 +310,17 @@ model Booking {
 }
 
 model BookingExtra {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   bookingId     String
-  extraId       String
+  extraId       String? // audit link only — nulled if the vendor retires the extra
   nameSnapshot  String // name at booking time
   priceSnapshot Int // paise at booking time
 
+  // The snapshot is the booking's real record of what was purchased; the FK
+  // just links back to the live Extra while it exists. SetNull lets a vendor
+  // remove an extra without touching anyone's booking history.
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  extra   Extra   @relation(fields: [extraId], references: [id])
+  extra   Extra?  @relation(fields: [extraId], references: [id], onDelete: SetNull)
 }
 
 model Payment {

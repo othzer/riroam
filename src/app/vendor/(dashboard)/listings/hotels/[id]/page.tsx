@@ -35,6 +35,7 @@ export default async function EditHotelPage({
     coverImageUrl: hotel.coverImageUrl,
     imageUrls: hotel.imageUrls,
     rooms: hotel.rooms.map((r) => ({
+      roomId: r.id,
       name: r.name,
       description: r.description ?? "",
       pricePerNight: paiseToRupees(r.pricePerNight),

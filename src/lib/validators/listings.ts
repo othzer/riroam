@@ -39,6 +39,9 @@ export const itineraryDaySchema = z.object({
 });
 
 export const extraSchema = z.object({
+  // Present when editing an existing extra (named extraId, not id, because
+  // react-hook-form's useFieldArray reserves `id` for its render keys).
+  extraId: z.string().optional(),
   name: z.string().trim().min(2, "Name the extra").max(80),
   description: z.string().trim().max(300).optional().or(z.literal("")),
   price: z.number({ message: "Price" }).int().min(0).max(100_000_000),
@@ -71,6 +74,9 @@ export type PackageInput = z.infer<typeof packageSchema>;
 
 // ── Hotel ──────────────────────────────────────────────────────────────────
 export const roomSchema = z.object({
+  // Present when editing an existing room (named roomId, not id, because
+  // react-hook-form's useFieldArray reserves `id` for its render keys).
+  roomId: z.string().optional(),
   name: z.string().trim().min(2, "Name the room").max(80),
   description: z.string().trim().max(300).optional().or(z.literal("")),
   pricePerNight: rupees,
