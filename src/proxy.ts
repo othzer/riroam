@@ -15,10 +15,13 @@ export default auth((req) => {
   const isLoggedIn = !!session?.user;
   const role = session?.user?.role;
 
+  // The vendor dashboard lives under /vendor/**; /vendors/** is the PUBLIC
+  // storefront. A bare startsWith("/vendor") would match both.
+  const isVendorArea = path === "/vendor" || path.startsWith("/vendor/");
+
   // Paths that only require a logged-in user (ownership checked server-side).
   const requiresAuth =
-    path === "/vendor/onboarding" ||
-    path.startsWith("/vendor") ||
+    isVendorArea ||
     path.startsWith("/admin") ||
     path.startsWith("/trips") ||
     path.startsWith("/checkout") ||
@@ -36,11 +39,7 @@ export default auth((req) => {
   }
 
   // /vendor/** (except onboarding, open to any logged-in user) — VENDOR only.
-  if (
-    path.startsWith("/vendor") &&
-    path !== "/vendor/onboarding" &&
-    role !== "VENDOR"
-  ) {
+  if (isVendorArea && path !== "/vendor/onboarding" && role !== "VENDOR") {
     return NextResponse.redirect(new URL("/vendor/onboarding", nextUrl));
   }
 

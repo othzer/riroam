@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { VendorStatus } from "@prisma/client";
+import { Prisma, VendorStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireVendor } from "@/lib/auth";
 import { uniqueSlug } from "@/lib/slug";
@@ -31,6 +31,14 @@ function invalid(parsed: { error: { flatten: () => { fieldErrors: Record<string,
     error: "Check the highlighted fields",
     fieldErrors: parsed.error.flatten().fieldErrors,
   };
+}
+
+/** Thrown inside an update transaction to surface a friendly message. */
+class ListingUpdateError extends Error {}
+
+/** A Restrict foreign-key violation — a booking still references the row. */
+function isBookingFkViolation(e: unknown): boolean {
+  return e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003";
 }
 
 // ── Packages ────────────────────────────────────────────────────────────────
@@ -110,43 +118,76 @@ export async function updatePackage(
     ...d.itineraryDays.map((x) => x.altitudeMeters),
   );
 
-  await prisma.package.update({
-    where: { id },
-    data: {
-      title: d.title,
-      description: d.description,
-      destinations: d.destinations,
-      startCity: d.startCity,
-      durationDays: d.durationDays,
-      durationNights: d.durationNights,
-      maxAltitudeMeters,
-      pricePerPerson: rupeesToPaise(d.pricePerPerson),
-      maxGroupSize: d.maxGroupSize,
-      availableFrom: toUTCDate(d.availableFrom),
-      availableTo: toUTCDate(d.availableTo),
-      freeCancellationDays: d.freeCancellationDays,
-      coverImageUrl: d.coverImageUrl,
-      imageUrls: d.imageUrls,
-      itineraryDays: {
-        deleteMany: {},
-        create: d.itineraryDays.map((day, i) => ({
-          dayNumber: i + 1,
-          title: day.title,
-          location: day.location,
-          altitudeMeters: day.altitudeMeters,
-          description: day.description,
-        })),
-      },
-      extras: {
-        deleteMany: {},
-        create: d.extras.map((e) => ({
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.package.update({
+        where: { id },
+        data: {
+          title: d.title,
+          description: d.description,
+          destinations: d.destinations,
+          startCity: d.startCity,
+          durationDays: d.durationDays,
+          durationNights: d.durationNights,
+          maxAltitudeMeters,
+          pricePerPerson: rupeesToPaise(d.pricePerPerson),
+          maxGroupSize: d.maxGroupSize,
+          availableFrom: toUTCDate(d.availableFrom),
+          availableTo: toUTCDate(d.availableTo),
+          freeCancellationDays: d.freeCancellationDays,
+          coverImageUrl: d.coverImageUrl,
+          imageUrls: d.imageUrls,
+          // Days carry no bookings — replacing them wholesale is safe.
+          itineraryDays: {
+            deleteMany: {},
+            create: d.itineraryDays.map((day, i) => ({
+              dayNumber: i + 1,
+              title: day.title,
+              location: day.location,
+              altitudeMeters: day.altitudeMeters,
+              description: day.description,
+            })),
+          },
+        },
+      });
+
+      // Extras are upserted by id, never blindly replaced: existing bookings
+      // hold BookingExtra rows pointing at these ids, and their snapshots must
+      // keep their audit link while the extra lives. Removed extras are
+      // deleted; SetNull severs the link and the snapshot remains the record.
+      const existingExtras = await tx.extra.findMany({
+        where: { packageId: id },
+        select: { id: true },
+      });
+      const existingIds = new Set(existingExtras.map((e) => e.id));
+      const keptIds = new Set<string>();
+
+      for (const e of d.extras) {
+        if (e.extraId && !existingIds.has(e.extraId)) {
+          throw new ListingUpdateError("One of the extras no longer exists — reload and try again");
+        }
+        const data = {
           name: e.name,
           description: e.description || null,
           price: rupeesToPaise(e.price),
-        })),
-      },
-    },
-  });
+        };
+        if (e.extraId) {
+          keptIds.add(e.extraId);
+          await tx.extra.update({ where: { id: e.extraId }, data });
+        } else {
+          await tx.extra.create({ data: { ...data, packageId: id } });
+        }
+      }
+
+      const removed = existingExtras.filter((e) => !keptIds.has(e.id));
+      if (removed.length > 0) {
+        await tx.extra.deleteMany({ where: { id: { in: removed.map((e) => e.id) } } });
+      }
+    });
+  } catch (e) {
+    if (e instanceof ListingUpdateError) return { ok: false, error: e.message };
+    throw e;
+  }
 
   revalidatePath("/vendor/listings");
   return { ok: true, id };
@@ -211,32 +252,76 @@ export async function updateHotel(
   if (!parsed.success) return invalid(parsed);
   const d = parsed.data;
 
-  await prisma.hotel.update({
-    where: { id },
-    data: {
-      name: d.name,
-      propertyType: d.propertyType,
-      description: d.description,
-      address: d.address,
-      city: d.city,
-      state: d.state,
-      altitudeMeters: d.altitudeMeters ?? null,
-      amenities: d.amenities,
-      freeCancellationDays: d.freeCancellationDays,
-      coverImageUrl: d.coverImageUrl,
-      imageUrls: d.imageUrls,
-      rooms: {
-        deleteMany: {},
-        create: d.rooms.map((r) => ({
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.hotel.update({
+        where: { id },
+        data: {
+          name: d.name,
+          propertyType: d.propertyType,
+          description: d.description,
+          address: d.address,
+          city: d.city,
+          state: d.state,
+          altitudeMeters: d.altitudeMeters ?? null,
+          amenities: d.amenities,
+          freeCancellationDays: d.freeCancellationDays,
+          coverImageUrl: d.coverImageUrl,
+          imageUrls: d.imageUrls,
+        },
+      });
+
+      // Rooms are upserted by id, never blindly replaced: bookings reference
+      // their room row directly (availability, trip history), so deleting a
+      // booked room would orphan them — Booking.roomId is SetNull, and a
+      // nulled roomId silently stops counting against availability. A room
+      // with bookings can be edited but not removed.
+      const existingRooms = await tx.room.findMany({
+        where: { hotelId: id },
+        select: { id: true, name: true, _count: { select: { bookings: true } } },
+      });
+      const existingIds = new Set(existingRooms.map((r) => r.id));
+      const keptIds = new Set<string>();
+
+      for (const r of d.rooms) {
+        if (r.roomId && !existingIds.has(r.roomId)) {
+          throw new ListingUpdateError("One of the rooms no longer exists — reload and try again");
+        }
+        const data = {
           name: r.name,
           description: r.description || null,
           pricePerNight: rupeesToPaise(r.pricePerNight),
           capacity: r.capacity,
           totalUnits: r.totalUnits,
-        })),
-      },
-    },
-  });
+        };
+        if (r.roomId) {
+          keptIds.add(r.roomId);
+          await tx.room.update({ where: { id: r.roomId }, data });
+        } else {
+          await tx.room.create({ data: { ...data, hotelId: id } });
+        }
+      }
+
+      const removed = existingRooms.filter((r) => !keptIds.has(r.id));
+      const blocked = removed.find((r) => r._count.bookings > 0);
+      if (blocked) {
+        throw new ListingUpdateError(
+          `"${blocked.name}" has bookings and can't be removed — you can edit it or set its units to what's actually available`,
+        );
+      }
+      if (removed.length > 0) {
+        await tx.room.deleteMany({ where: { id: { in: removed.map((r) => r.id) } } });
+      }
+    });
+  } catch (e) {
+    if (e instanceof ListingUpdateError) return { ok: false, error: e.message };
+    // Backstop for the race the precheck can't close: a booking landed on a
+    // room being removed after we counted. The Restrict FK rejects the delete.
+    if (isBookingFkViolation(e)) {
+      return { ok: false, error: "A room has bookings and can't be removed — unpublish the hotel instead" };
+    }
+    throw e;
+  }
 
   revalidatePath("/vendor/listings");
   return { ok: true, id };
@@ -325,9 +410,39 @@ export async function deleteListing(
     return { ok: false, error: "Listing not found" };
   }
 
-  if (type === "package") await prisma.package.delete({ where: { id } });
-  else if (type === "hotel") await prisma.hotel.delete({ where: { id } });
-  else await prisma.vehicleListing.delete({ where: { id } });
+  // A listing with bookings (any status) is load-bearing: trips, reviews, and
+  // refunds all reach back through it. The Restrict FK forbids the delete at
+  // the DB level; this precheck is the friendly path — unpublishing retires it.
+  const bookingCount = await prisma.booking.count({
+    where:
+      type === "package"
+        ? { packageId: id }
+        : type === "hotel"
+          ? { hotelId: id }
+          : { vehicleId: id },
+  });
+  if (bookingCount > 0) {
+    return {
+      ok: false,
+      error: "This listing has bookings and can't be deleted — unpublish it instead",
+    };
+  }
+
+  try {
+    if (type === "package") await prisma.package.delete({ where: { id } });
+    else if (type === "hotel") await prisma.hotel.delete({ where: { id } });
+    else await prisma.vehicleListing.delete({ where: { id } });
+  } catch (e) {
+    // Backstop for the count/delete race: a booking landed after the precheck.
+    // The Restrict FK rejects the delete rather than nulling the booking's link.
+    if (isBookingFkViolation(e)) {
+      return {
+        ok: false,
+        error: "This listing has bookings and can't be deleted — unpublish it instead",
+      };
+    }
+    throw e;
+  }
 
   revalidatePath("/vendor/listings");
   return { ok: true };

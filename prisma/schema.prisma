@@ -295,10 +295,16 @@ model Booking {
 
   tourist       User            @relation(fields: [touristId], references: [id])
   vendor        VendorProfile   @relation(fields: [vendorId], references: [id])
-  package       Package?        @relation(fields: [packageId], references: [id])
-  hotel         Hotel?          @relation(fields: [hotelId], references: [id])
-  room          Room?           @relation(fields: [roomId], references: [id])
-  vehicle       VehicleListing? @relation(fields: [vehicleId], references: [id])
+  // NoAction, not the optional-relation default (SetNull): a booking must keep
+  // its listing link, so the DB itself refuses to delete a listing that still
+  // has bookings. This is the authoritative guard — the count-prechecks in
+  // deleteListing/updateHotel are just the friendly fast path (and can race).
+  // NoAction (Postgres 23503) surfaces as Prisma P2003; Restrict (23001) does
+  // not map cleanly, so the friendly-message translation wouldn't catch it.
+  package       Package?        @relation(fields: [packageId], references: [id], onDelete: NoAction)
+  hotel         Hotel?          @relation(fields: [hotelId], references: [id], onDelete: NoAction)
+  room          Room?           @relation(fields: [roomId], references: [id], onDelete: NoAction)
+  vehicle       VehicleListing? @relation(fields: [vehicleId], references: [id], onDelete: NoAction)
   payment       Payment?
   review        Review?
   bookingExtras BookingExtra[]
@@ -310,14 +316,17 @@ model Booking {
 }
 
 model BookingExtra {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   bookingId     String
-  extraId       String
+  extraId       String? // audit link only — nulled if the vendor retires the extra
   nameSnapshot  String // name at booking time
   priceSnapshot Int // paise at booking time
 
+  // The snapshot is the booking's real record of what was purchased; the FK
+  // just links back to the live Extra while it exists. SetNull lets a vendor
+  // remove an extra without touching anyone's booking history.
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  extra   Extra   @relation(fields: [extraId], references: [id])
+  extra   Extra?  @relation(fields: [extraId], references: [id], onDelete: SetNull)
 }
 
 model Payment {

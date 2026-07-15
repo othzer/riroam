@@ -12,25 +12,13 @@ export const metadata: Metadata = { title: "Vendor dashboard" };
 export default async function VendorDashboardPage() {
   const { vendor } = await requireVendor();
 
-  const where = { vendorId: vendor.id };
   const wherePublished = { vendorId: vendor.id, isPublished: true };
-  const [
-    pkgActive,
-    hotelActive,
-    vehActive,
-    pkgTotal,
-    hotelTotal,
-    vehTotal,
-  ] = await Promise.all([
+  const [pkgActive, hotelActive, vehActive] = await Promise.all([
     prisma.package.count({ where: wherePublished }),
     prisma.hotel.count({ where: wherePublished }),
     prisma.vehicleListing.count({ where: wherePublished }),
-    prisma.package.count({ where }),
-    prisma.hotel.count({ where }),
-    prisma.vehicleListing.count({ where }),
   ]);
   const activeListings = pkgActive + hotelActive + vehActive;
-  const totalListings = pkgTotal + hotelTotal + vehTotal;
 
   const now = new Date();
   const [upcomingBookings, revenueAgg, ratingAgg] = await Promise.all([

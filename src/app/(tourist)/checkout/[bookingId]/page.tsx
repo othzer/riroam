@@ -81,7 +81,10 @@ export default async function CheckoutPage({
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { payment: true },
+    include: {
+      payment: true,
+      bookingExtras: { select: { nameSnapshot: true, priceSnapshot: true } },
+    },
   });
   if (!booking || booking.touristId !== session.user.id) notFound();
   if (booking.status === "CONFIRMED") redirect(`/checkout/${bookingId}/result`);
@@ -128,12 +131,12 @@ export default async function CheckoutPage({
                 <span>Base</span>
                 <span className="font-mono">{formatINR(booking.baseAmount)}</span>
               </div>
-              {booking.extrasAmount > 0 && (
-                <div className="flex justify-between text-ink-soft">
-                  <span>Extras</span>
-                  <span className="font-mono">{formatINR(booking.extrasAmount)}</span>
+              {booking.bookingExtras.map((e, i) => (
+                <div key={i} className="flex justify-between text-ink-soft">
+                  <span>{e.nameSnapshot}</span>
+                  <span className="font-mono">{formatINR(e.priceSnapshot)}</span>
                 </div>
-              )}
+              ))}
             </div>
             <div className="mt-2 flex justify-between border-t border-border-soft pt-3">
               <span className="font-medium text-ink">Total</span>
@@ -175,6 +178,7 @@ export default async function CheckoutPage({
               name={booking.contactName}
               email={session.user.email ?? ""}
               phone={booking.contactPhone}
+              expiresAt={booking.expiresAt?.toISOString()}
             />
           )}
         </div>
