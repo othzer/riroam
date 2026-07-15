@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ShieldCheck, MessageCircleHeart, Lock } from "lucide-react";
+import {
+  ShieldCheck,
+  Star,
+  Lock,
+  ArrowRight,
+  Landmark,
+  Waves,
+  Bike,
+  Home as HomeIcon,
+  Sparkles,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
@@ -10,12 +20,21 @@ import { ListingCard, type ListingCardData } from "@/components/shared/listing-c
 import { EmptyState } from "@/components/shared/empty-state";
 
 export default async function Home() {
-  const packages = await prisma.package.findMany({
-    where: { isPublished: true },
-    orderBy: [{ avgRating: "desc" }, { createdAt: "desc" }],
-    take: 3,
-    include: { vendor: { select: { businessName: true } } },
-  });
+  const [packages, cultureCount, lakeCount, bikeCount, homestayCount] =
+    await Promise.all([
+      prisma.package.findMany({
+        where: { isPublished: true },
+        orderBy: [{ avgRating: "desc" }, { createdAt: "desc" }],
+        take: 3,
+        include: { vendor: { select: { businessName: true } } },
+      }),
+      prisma.package.count({ where: { isPublished: true } }),
+      prisma.package.count({
+        where: { isPublished: true, destinations: { hasSome: ["Pangong", "Tso Moriri", "Tso Kar"] } },
+      }),
+      prisma.vehicleListing.count({ where: { isPublished: true, vehicleType: "BIKE" } }),
+      prisma.hotel.count({ where: { isPublished: true, propertyType: "HOMESTAY" } }),
+    ]);
 
   const featured: ListingCardData[] = packages.map((p) => ({
     href: `/packages/${p.slug}`,
@@ -63,10 +82,10 @@ export default async function Home() {
         </section>
 
         {/* Trust strip */}
-        <section className="mx-auto max-w-6xl px-6 py-12">
-          <div className="grid gap-6 sm:grid-cols-3">
-            <Trust icon={ShieldCheck} text="Verified vendors, admin-approved" />
-            <Trust icon={MessageCircleHeart} text="Reviews from completed trips only" />
+        <section className="mx-auto max-w-6xl px-6 py-10">
+          <div className="flex flex-col items-center justify-center gap-x-8 gap-y-3 text-sm text-ink-soft sm:flex-row">
+            <Trust icon={ShieldCheck} text="Admin-verified vendors" />
+            <Trust icon={Star} text="Reviews from completed trips only" />
             <Trust icon={Lock} text="Secure checkout" />
           </div>
         </section>
@@ -77,8 +96,11 @@ export default async function Home() {
             <h2 className="font-heading text-2xl font-bold text-ink">
               Featured circuits
             </h2>
-            <Link href="/packages" className="text-sm font-medium text-pangong hover:text-pangong-deep">
-              View all
+            <Link
+              href="/packages"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-pangong hover:text-pangong-deep"
+            >
+              View all <ArrowRight className="size-3.5" />
             </Link>
           </div>
           {featured.length > 0 ? (
@@ -101,26 +123,56 @@ export default async function Home() {
             Browse by interest
           </h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <CategoryTile href="/packages?destination=Leh" label="Monasteries & culture" tint="#0D6E8F" />
-            <CategoryTile href="/packages?destination=Pangong" label="High-altitude lakes" tint="#0D6E8F" />
-            <CategoryTile href="/vehicles?type=BIKE" label="Bike expeditions" tint="#B07A5C" />
-            <CategoryTile href="/hotels?propertyType=HOMESTAY" label="Homestays" tint="#D9A94E" />
+            <CategoryTile
+              href="/packages"
+              icon={Landmark}
+              label="Monasteries & culture"
+              count={`${cultureCount} ${cultureCount === 1 ? "circuit" : "circuits"}`}
+            />
+            <CategoryTile
+              href="/packages?destination=Pangong"
+              icon={Waves}
+              label="High-altitude lakes"
+              count={`${lakeCount} ${lakeCount === 1 ? "circuit" : "circuits"}`}
+            />
+            <CategoryTile
+              href="/vehicles?type=BIKE"
+              icon={Bike}
+              label="Bike expeditions"
+              count={`${bikeCount} ${bikeCount === 1 ? "ride" : "rides"}`}
+            />
+            <CategoryTile
+              href="/hotels?propertyType=HOMESTAY"
+              icon={HomeIcon}
+              label="Homestays"
+              count={`${homestayCount} ${homestayCount === 1 ? "stay" : "stays"}`}
+            />
           </div>
         </section>
 
-        {/* AI planner teaser — Phase 6 builds the real /plan route */}
+        {/* AI planner band — the real /plan route (Phase 6) */}
         <section className="mx-auto max-w-6xl px-6 py-10">
-          <div className="rounded-card bg-ink px-8 py-10 text-white">
-            <p className="inline-block rounded-chip bg-white/10 px-2 py-0.5 font-mono text-xs tracking-wide text-white/70">
-              Coming soon
-            </p>
-            <h2 className="mt-3 max-w-lg font-heading text-2xl font-bold">
-              An AI planner that only suggests trips you can actually book
-            </h2>
-            <p className="mt-2 max-w-lg text-sm text-white/70">
-              Every suggestion is a real, bookable listing — never an invented
-              hotel.
-            </p>
+          <div className="flex flex-col items-start justify-between gap-5 rounded-card bg-ink px-6 py-6 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="font-heading text-xl font-bold text-white">
+                Some days and a budget? Plan it with AI.
+              </h2>
+              <p className="mt-1.5 text-sm text-white/60">
+                Every suggestion is a real, bookable listing — never an invented
+                hotel.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="hidden rounded-control bg-white/10 px-3 py-2 font-mono text-xs text-white/70 sm:inline">
+                Leh, 6 days, ₹40k, lakes…
+              </span>
+              <Link
+                href="/plan"
+                className="inline-flex items-center gap-1.5 rounded-control bg-apricot px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-apricot-hover"
+              >
+                <Sparkles className="size-4" /> Generate plan
+              </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -137,7 +189,7 @@ function Trust({
   text: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 text-sm text-ink-soft">
+    <div className="flex items-center gap-2 whitespace-nowrap">
       <Icon className="size-4 shrink-0 text-pangong" />
       {text}
     </div>
@@ -146,22 +198,25 @@ function Trust({
 
 function CategoryTile({
   href,
+  icon: Icon,
   label,
-  tint,
+  count,
 }: {
   href: string;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
-  tint: string;
+  count: string;
 }) {
   return (
     <Link
       href={href}
-      className="group flex aspect-square flex-col justify-end rounded-card border border-border p-4 transition-all duration-150 hover:-translate-y-0.5"
-      style={{ backgroundColor: `${tint}14` }}
+      className="group flex flex-col gap-1.5 rounded-card border border-border bg-surface p-4 transition-all duration-150 hover:-translate-y-0.5 hover:border-ink/20"
     >
-      <span className="font-heading text-sm font-bold leading-tight text-ink">
+      <Icon className="size-5 text-pangong" />
+      <span className="mt-1 font-heading text-sm font-bold leading-tight text-ink">
         {label}
       </span>
+      <span className="text-xs text-ink-muted">{count}</span>
     </Link>
   );
 }
