@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { toISODate } from "@/lib/dates";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { Ridge } from "@/components/shared/ridge";
@@ -81,7 +82,7 @@ export default async function Home() {
 
           <div className="mx-auto max-w-6xl px-6">
             <div className="-mt-16 sm:-mt-20">
-              <SearchCard />
+              <SearchCard today={toISODate(new Date())} />
             </div>
           </div>
         </section>

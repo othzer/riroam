@@ -5,6 +5,7 @@ import { Star, BadgeCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { clampISODate, defaultBookingWindow, toISODate } from "@/lib/dates";
+import { isoDateParam, type SearchParams } from "@/lib/filters";
 import { DetailHeader } from "@/components/tourist/detail-header";
 import { DetailGallery } from "@/components/tourist/detail-gallery";
 import { DetailCard, ReviewsCard } from "@/components/tourist/detail-card";
@@ -32,10 +33,13 @@ export async function generateMetadata({
 
 export default async function PackageDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
 
   const pkg = await prisma.package.findUnique({
     where: { slug, isPublished: true },
@@ -49,6 +53,12 @@ export default async function PackageDetailPage({
 
   const availableFrom = toISODate(pkg.availableFrom);
   const availableTo = toISODate(pkg.availableTo);
+
+  // A date carried over from the hero search wins over the generic default.
+  const searchedFrom = isoDateParam(sp, "from");
+  const preferredStart = searchedFrom
+    ? toISODate(searchedFrom)
+    : defaultBookingWindow().start;
 
   const session = await auth();
 
@@ -137,11 +147,7 @@ export default async function PackageDetailPage({
               freeCancellationDays={pkg.freeCancellationDays}
               availableFrom={availableFrom}
               availableTo={availableTo}
-              defaultStartDate={clampISODate(
-                defaultBookingWindow().start,
-                availableFrom,
-                availableTo,
-              )}
+              defaultStartDate={clampISODate(preferredStart, availableFrom, availableTo)}
               vendorName={pkg.vendor.businessName}
               vendorSlug={pkg.vendor.slug}
               touristName={session?.user?.name ?? ""}

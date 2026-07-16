@@ -2,17 +2,17 @@ import { Search } from "lucide-react";
 
 // Landing hero search — a plain GET form so it works with zero client JS and
 // lands on /packages with the same searchParams the explore filter bar reads.
-      
-export function SearchCard() {
+// Every field here must be one the results page actually consumes: a control
+// that quietly does nothing is worse than no control at all.
+export function SearchCard({ today }: { today: string }) {
   return (
     <form
       action="/packages"
       method="get"
-      className="relative z-10 grid grid-cols-1 divide-y divide-border rounded-card border border-border bg-white p-2 shadow-lg sm:grid-cols-[1.2fr_1fr_0.8fr_auto] sm:divide-x sm:divide-y-0"
+      className="relative z-10 grid grid-cols-1 divide-y divide-border rounded-card border border-border bg-white p-2 shadow-lg sm:grid-cols-[1.4fr_1fr_auto] sm:divide-x sm:divide-y-0"
     >
       <Field label="Where in Ladakh" name="destination" placeholder="Nubra, Pangong, Leh…" />
-      <Field label="Dates" name="from" type="date" />
-      <Field label="Travellers" name="travellers" type="number" placeholder="2" min={1} />
+      <Field label="Starting from" name="from" type="date" min={today} />
       <div className="flex items-center p-1.5">
         <button
           type="submit"
@@ -37,7 +37,7 @@ function Field({
   name: string;
   type?: string;
   placeholder?: string;
-  min?: number;
+  min?: string;
 }) {
   return (
     <label className="flex flex-col gap-0.5 px-3 py-2 text-left">
