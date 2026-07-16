@@ -28,6 +28,8 @@ export type Trip = {
   listingImage: string;
   listingHref: string;
   listingKind: ListingKind;
+  /** False once the vendor unpublishes it — the detail page would 404. */
+  listingAvailable: boolean;
 };
 
 type TabKey = "upcoming" | "completed" | "cancelled";
@@ -102,11 +104,22 @@ function TripCard({ trip }: { trip: Trip }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Link href={trip.listingHref} className="truncate font-medium text-ink hover:text-pangong">
-              {trip.listingTitle}
-            </Link>
+            {/* The booking stands whatever the vendor does to the listing, but
+                an unpublished one has no page left to open. */}
+            {trip.listingAvailable ? (
+              <Link href={trip.listingHref} className="truncate font-medium text-ink hover:text-pangong">
+                {trip.listingTitle}
+              </Link>
+            ) : (
+              <span className="truncate font-medium text-ink">{trip.listingTitle}</span>
+            )}
             <BookingStatusPill status={trip.status} />
           </div>
+          {!trip.listingAvailable && (
+            <p className="mt-1 text-xs text-ink-muted">
+              No longer listed — your booking is unaffected.
+            </p>
+          )}
           <p className="mt-1 font-mono text-xs text-ink-muted">{trip.bookingCode}</p>
           <p className="mt-0.5 text-xs text-ink-soft">
             {formatDateRange(new Date(trip.startDate), new Date(trip.endDate))} ·{" "}

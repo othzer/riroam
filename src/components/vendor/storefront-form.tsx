@@ -85,7 +85,10 @@ export function StorefrontForm({
           )}
         </div>
         <div className="flex items-center gap-3 bg-surface p-4">
-          <div className="-mt-10 flex size-14 items-center justify-center overflow-hidden rounded-xl border-4 border-paper bg-surface">
+          {/* relative z-10 so the negative-margin overlap paints ABOVE the
+              positioned banner — without it the logo's top edge slides behind
+              the banner and looks clipped. */}
+          <div className="relative z-10 -mt-10 flex size-14 items-center justify-center overflow-hidden rounded-xl border-4 border-paper bg-surface">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="size-full object-cover" />
