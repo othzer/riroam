@@ -8,11 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Minus, Plus, Check, Clock, CircleCheck, BadgeCheck, Loader2 } from "lucide-react";
+import { Minus, Plus, Check, Clock, CircleCheck, Loader2 } from "lucide-react";
 import { formatINR } from "@/lib/money";
 import { addDays, formatDate } from "@/lib/dates";
 import { createBooking } from "@/actions/bookings";
+import { VendorMiniCard } from "@/components/tourist/vendor-mini-card";
 
 export type Extra = { id: string; name: string; description: string | null; price: number };
 
@@ -164,13 +164,6 @@ export function BookingCard({
     }
   }
 
-  const initials = vendorName
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <div className="rounded-card border border-border bg-surface p-4">
       <div className="flex items-baseline gap-1.5">
@@ -274,23 +267,7 @@ export function BookingCard({
         <Clock className="size-3" /> Your spot is held for 20 minutes at checkout
       </p>
 
-      <div className="mt-3 flex items-center gap-2.5 border-t border-border-soft pt-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-control bg-ink font-mono text-[11px] font-bold text-white">
-          {initials}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1 text-[12px] font-semibold text-ink">
-            {vendorName}
-            <BadgeCheck className="size-3 text-pangong" />
-          </p>
-          <Link
-            href={`/vendors/${vendorSlug}`}
-            className="text-[11px] font-semibold text-pangong hover:text-pangong-deep"
-          >
-            View storefront
-          </Link>
-        </div>
-      </div>
+      <VendorMiniCard name={vendorName} slug={vendorSlug} />
     </div>
   );
 }
