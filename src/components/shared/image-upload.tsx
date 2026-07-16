@@ -13,8 +13,8 @@ function useUpload(folder: string) {
     setUploading(true);
     try {
       return await uploadToCloudinary(file, folder);
-    } catch {
-      toast.error("Upload failed — try again");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed — try again");
       return null;
     } finally {
       setUploading(false);
