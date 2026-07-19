@@ -130,7 +130,10 @@ export default async function VendorStorefrontPage({
         )}
       </div>
 
-      <div className="mx-auto max-w-6xl px-6">
+      {/* `relative` is load-bearing: the banner above is positioned, so without
+          a stacking context of its own this column's negative-margin overlap
+          renders *behind* the banner and the logo/name disappear into it. */}
+      <div className="relative z-10 mx-auto max-w-6xl px-6">
         <div className="-mt-10 flex items-end gap-4 sm:-mt-12">
           <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-paper bg-surface sm:size-24">
             {vendor.logoUrl ? (
