@@ -156,4 +156,54 @@
   h3 {
     @apply font-heading;
   }
+
+  /* Date fields.
+     The native picker panel itself is closed to CSS, but `accent-color` does
+     theme the selected day and the today marker inside it — so the popup picks
+     up Pangong blue instead of the browser default. Everything below styles the
+     part of the control that does live in our DOM. */
+  input[type="date"] {
+    accent-color: var(--pangong);
+    color-scheme: light;
+    /* iOS Safari otherwise renders date inputs with its own inherited metrics
+       and centre-aligns them, which breaks the label/value stack. */
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 1.25rem;
+    text-align: left;
+  }
+
+  /* The calendar glyph is a real click target — give it hover feedback and
+     enough padding to actually hit on touch. */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 2px;
+    margin-inline-start: 0.25rem;
+    border-radius: 4px;
+    transition:
+      opacity 0.15s ease,
+      background-color 0.15s ease;
+  }
+  input[type="date"]:hover::-webkit-calendar-picker-indicator,
+  input[type="date"]:focus::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    background-color: var(--pangong-tint);
+  }
+
+  /* Highlight the day/month/year segment being edited, so keyboard users can
+     see which part the arrow keys are driving. */
+  input[type="date"]::-webkit-datetime-edit-day-field:focus,
+  input[type="date"]::-webkit-datetime-edit-month-field:focus,
+  input[type="date"]::-webkit-datetime-edit-year-field:focus {
+    background-color: var(--pangong-tint);
+    color: var(--pangong-deep);
+    border-radius: 3px;
+    outline: none;
+  }
+
+  input[type="date"]::-webkit-datetime-edit-text {
+    color: var(--ink-muted);
+    padding: 0 1px;
+  }
 }

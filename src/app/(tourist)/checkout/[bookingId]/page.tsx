@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatINR } from "@/lib/money";
+import { GST_RATE, splitInclusiveTotal } from "@/lib/fees";
 import { formatDateRange, isExpired } from "@/lib/dates";
 import { ListingImage, type ListingKind } from "@/components/shared/listing-image";
 import { CountdownChip } from "@/components/tourist/countdown-chip";
@@ -95,6 +96,7 @@ export default async function CheckoutPage({
   if (!listing) notFound();
 
   const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const breakdown = splitInclusiveTotal(booking.totalAmount);
 
   return (
     <div className="mx-auto max-w-lg px-6 py-10">
@@ -138,12 +140,34 @@ export default async function CheckoutPage({
                 </div>
               ))}
             </div>
+
+            {/* Disclosure, not a surcharge — these come out of the total above,
+                so the traveller pays exactly what the listing quoted. */}
+            <div className="mt-3 space-y-1 rounded-control bg-sand px-3 py-2.5 text-xs">
+              <p className="font-medium text-ink-soft">Included in this price</p>
+              <div className="flex justify-between text-ink-muted">
+                <span>Pre-tax fare</span>
+                <span className="font-mono">{formatINR(breakdown.base)}</span>
+              </div>
+              <div className="flex justify-between text-ink-muted">
+                <span>GST ({Math.round(GST_RATE * 100)}%)</span>
+                <span className="font-mono">{formatINR(breakdown.gst)}</span>
+              </div>
+              <div className="flex justify-between text-ink-muted">
+                <span>Convenience fee</span>
+                <span className="font-mono">{formatINR(breakdown.convenienceFee)}</span>
+              </div>
+            </div>
+
             <div className="mt-2 flex justify-between border-t border-border-soft pt-3">
-              <span className="font-medium text-ink">Total</span>
+              <span className="font-medium text-ink">Total payable</span>
               <span className="font-mono text-lg font-bold text-ink">
                 {formatINR(booking.totalAmount)}
               </span>
             </div>
+            <p className="mt-1 text-right text-[11px] text-ink-muted">
+              All taxes and fees included — nothing extra at the property.
+            </p>
           </div>
 
           {/* contact */}
@@ -151,6 +175,12 @@ export default async function CheckoutPage({
             <h2 className="mb-3 text-sm font-semibold text-ink">Contact</h2>
             <p className="text-sm text-ink-soft">{booking.contactName}</p>
             <p className="text-sm text-ink-soft">{booking.contactPhone}</p>
+            {session.user.email && (
+              <p className="text-sm text-ink-soft">{session.user.email}</p>
+            )}
+            <p className="mt-2 text-xs text-ink-muted">
+              Your confirmation and booking code go to this email.
+            </p>
           </div>
 
           {/* cancellation policy */}
