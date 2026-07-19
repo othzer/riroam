@@ -51,6 +51,11 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
             token.userId = dbUser.id;
             token.role = dbUser.role;
             token.email = dbUser.email;
+            // Carried through so a profile edit shows up in the navbar right
+            // away — without these the JWT keeps the name and avatar it was
+            // minted with until the next sign-in.
+            token.name = dbUser.name;
+            token.picture = dbUser.image;
           }
         }
       }
