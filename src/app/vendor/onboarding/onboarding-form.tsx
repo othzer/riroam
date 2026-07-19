@@ -11,6 +11,9 @@ import {
   type OnboardingInput,
   BUSINESS_TYPES,
   BUSINESS_TYPE_LABELS,
+  LADAKH_DISTRICTS,
+  LADAKH_REGIONS,
+  REGION_DISTRICT,
 } from "@/lib/validators/vendor";
 import { submitVendorOnboarding } from "@/actions/vendor";
 import { FileUpload } from "@/components/shared/file-upload";
@@ -30,7 +33,16 @@ import { cn } from "@/lib/utils";
 const STEPS = ["Business", "Verification", "Review"] as const;
 
 const STEP_FIELDS: FieldPath<OnboardingInput>[][] = [
-  ["businessName", "businessType", "phone", "city", "state", "serviceAreas"],
+  [
+    "businessName",
+    "businessType",
+    "phone",
+    "district",
+    "region",
+    "city",
+    "state",
+    "serviceAreas",
+  ],
   ["verificationDocUrl"],
   [],
 ];
@@ -58,6 +70,8 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
       phone: "",
       city: "",
       state: "",
+      district: undefined,
+      region: undefined,
       serviceAreas: [],
       gstNumber: "",
       verificationDocUrl: "",
@@ -177,14 +191,89 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="city">City</Label>
-                <Input id="city" placeholder="Leh" {...register("city")} />
+                <Label>District</Label>
+                <Controller
+                  control={control}
+                  name="district"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(v) => {
+                        field.onChange(v);
+                        // Clear a region that doesn't belong to the new
+                        // district rather than leaving an invalid pair behind.
+                        if (
+                          values.region &&
+                          REGION_DISTRICT[values.region] !== v
+                        ) {
+                          setValue("region", "" as OnboardingInput["region"]);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a district" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LADAKH_DISTRICTS.map((d) => (
+                          <SelectItem key={d} value={d}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.district && (
+                  <p className="text-xs text-danger">Select a district</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Region</Label>
+                <Controller
+                  control={control}
+                  name="region"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={!values.district}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            values.district ? "Select a region" : "Pick a district first"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LADAKH_REGIONS.filter(
+                          (r) => REGION_DISTRICT[r] === values.district,
+                        ).map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.region && (
+                  <p className="text-xs text-danger">{errors.region.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="city">Town or village</Label>
+                <Input id="city" placeholder="Diskit" {...register("city")} />
                 {errors.city && (
                   <p className="text-xs text-danger">{errors.city.message}</p>
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="state">State</Label>
+                <Label htmlFor="state">State / UT</Label>
                 <Input
                   id="state"
                   placeholder="Ladakh"
@@ -300,7 +389,10 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
                   : "—"
               }
             />
-            <Row label="City" value={`${values.city}, ${values.state}`} />
+            <Row
+              label="Location"
+              value={`${values.city}, ${values.region} · ${values.district} district, ${values.state}`}
+            />
             <Row label="Phone" value={values.phone} />
             <Row
               label="Service areas"

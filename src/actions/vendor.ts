@@ -111,6 +111,8 @@ export async function submitVendorOnboarding(
     description: data.description || null,
     phone: data.phone,
     city: data.city,
+    district: data.district,
+    region: data.region,
     state: data.state,
     serviceAreas: data.serviceAreas,
     gstNumber: data.gstNumber || null,

@@ -106,6 +106,10 @@ model VendorProfile {
   description        String?
   phone              String
   city               String
+  // Ladakh's two revenue districts, and the valley/region within them. Kept as
+  // plain strings rather than enums so a new region doesn't need a migration.
+  district           String?
+  region             String?
   state              String
   serviceAreas       String[] // cities/regions served
   gstNumber          String?
