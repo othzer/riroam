@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { buildPackageWhere, getPage, pageHref, PAGE_SIZE, type SearchParams } from "@/lib/filters";
+import { buildPackageWhere, first, getPage, pageHref, PAGE_SIZE, type SearchParams } from "@/lib/filters";
 import { FilterBar } from "@/components/shared/filter-bar";
 import { ListingCard, type ListingCardData } from "@/components/shared/listing-card";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -28,8 +28,13 @@ export default async function PackagesExplorePage({
     }),
   ]);
 
+  // Hand the searched date to the detail page so its booking card opens on the
+  // date the traveller actually asked for.
+  const from = first(sp.from)?.trim();
+  const detailQuery = from ? `?from=${encodeURIComponent(from)}` : "";
+
   const cards: ListingCardData[] = packages.map((p) => ({
-    href: `/packages/${p.slug}`,
+    href: `/packages/${p.slug}${detailQuery}`,
     kind: "package",
     image: p.coverImageUrl,
     imageAlt: `${p.title} — ${p.destinations.join(", ")}`,
