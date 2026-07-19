@@ -25,9 +25,12 @@ export default async function VendorDashboardPage() {
     prisma.booking.count({
       where: { vendorId: vendor.id, status: "CONFIRMED", endDate: { gte: now } },
     }),
+    // COMPLETED only. A CONFIRMED booking is money that hasn't been travelled
+    // yet and can still be cancelled and refunded, so counting it as revenue
+    // overstates earnings — it belongs in the upcoming count instead.
     prisma.booking.aggregate({
       _sum: { totalAmount: true },
-      where: { vendorId: vendor.id, status: { in: ["CONFIRMED", "COMPLETED"] } },
+      where: { vendorId: vendor.id, status: "COMPLETED" },
     }),
     prisma.review.aggregate({
       _avg: { rating: true },
@@ -55,7 +58,7 @@ export default async function VendorDashboardPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active listings" value={String(activeListings)} />
         <StatCard label="Upcoming bookings" value={String(upcomingBookings)} />
-        <StatCard label="Revenue (test)" value={formatINR(revenue)} />
+        <StatCard label="Earned (completed trips)" value={formatINR(revenue)} />
         <StatCard label="Avg rating" value={avgRating != null ? avgRating.toFixed(1) : "—"} />
       </div>
     </div>

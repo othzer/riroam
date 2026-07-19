@@ -86,6 +86,15 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
   }
 
   async function onSubmit(input: OnboardingInput) {
+    // Pressing Enter in any text field fires a native submit, which used to
+    // send the application straight off the first step — past Verification and
+    // the Review screen. Only the last step may actually submit; anywhere else
+    // Enter behaves like Continue.
+    if (step < STEPS.length - 1) {
+      await next();
+      return;
+    }
+
     setPending(true);
     try {
       const res = await submitVendorOnboarding(input);
