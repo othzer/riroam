@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { toast } from "sonner";
@@ -48,6 +48,11 @@ export function RazorpayButton({
   const router = useRouter();
   const [scriptReady, setScriptReady] = useState(false);
   const [pending, setPending] = useState(false);
+  // Razorpay fires ondismiss when the modal closes for ANY reason — including
+  // right after a successful payment. This flag lets dismiss tell "user backed
+  // out" apart from "we're already navigating", so a paid booking is never
+  // redirected to the failure view.
+  const settled = useRef(false);
   // Deterministic initial value — no Date.now() during render, so server and
   // client hydrate identically.
   const [expired, setExpired] = useState(false);
@@ -85,6 +90,7 @@ export function RazorpayButton({
       theme: { color: "#E39129" },
       handler: async (response: unknown) => {
         const r = response as RazorpaySuccessResponse;
+        settled.current = true;
         try {
           const res = await verifyPayment({
             bookingId,
@@ -96,16 +102,31 @@ export function RazorpayButton({
             router.push(`/checkout/${bookingId}/result`);
             return;
           }
+          // Verification bounced — the modal is gone but the hold may still be
+          // live, so hand the button back and let a fresh attempt re-arm.
+          settled.current = false;
           toast.error(res.error);
         } catch {
+          settled.current = false;
           toast.error("Couldn't verify the payment — check your trip status");
         } finally {
           setPending(false);
         }
       },
-      modal: { ondismiss: () => setPending(false) },
+      // Closing the modal used to only clear `pending`, which left the user
+      // stranded on a checkout page with no feedback. Send them to the result
+      // page instead — it reads the booking's real status and offers a retry
+      // while the hold is still alive.
+      modal: {
+        ondismiss: () => {
+          setPending(false);
+          if (settled.current) return;
+          router.push(`/checkout/${bookingId}/result`);
+        },
+      },
     });
     rzp.on("payment.failed", () => {
+      settled.current = true;
       setPending(false);
       router.push(`/checkout/${bookingId}/result`);
     });
