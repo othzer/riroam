@@ -18,6 +18,7 @@ import { AltitudeChip } from "@/components/shared/altitude-chip";
 import { SearchCard } from "@/components/shared/search-card";
 import { ListingCard, type ListingCardData } from "@/components/shared/listing-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { UpcomingTrip } from "@/components/tourist/upcoming-trip";
 
 export default async function Home() {
   const [packages, cultureCount, lakeCount, bikeCount, homestayCount] =
@@ -84,6 +85,9 @@ export default async function Home() {
             </div>
           </div>
         </section>
+
+        {/* Renders only for a signed-in traveller with a trip coming up */}
+        <UpcomingTrip />
 
         {/* Trust strip */}
         <section className="mx-auto max-w-6xl px-6 py-8">
