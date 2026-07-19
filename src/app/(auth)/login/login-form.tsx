@@ -15,7 +15,10 @@ import { Button } from "@/components/ui/button";
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const dest = callbackUrl || "/";
+  // /welcome resolves the real destination server-side from the account's
+  // role; an explicit callbackUrl (a guarded page the user was bounced off)
+  // still wins.
+  const dest = callbackUrl || "/welcome";
 
   const {
     register,
