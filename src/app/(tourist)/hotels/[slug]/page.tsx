@@ -1,17 +1,18 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ChevronRight } from "lucide-react";
+import { Star } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { ListingImage } from "@/components/shared/listing-image";
-import { AltitudeChip } from "@/components/shared/altitude-chip";
-import { RatingStars } from "@/components/shared/rating-stars";
 import { AmenityGrid } from "@/components/shared/amenity-grid";
 import { LeafletMap } from "@/components/shared/leaflet-map";
-import { ReviewCard } from "@/components/shared/review-card";
-import { EmptyState } from "@/components/shared/empty-state";
-import { HotelBookingSection } from "@/components/tourist/hotel-booking-section";
+import { DetailHeader } from "@/components/tourist/detail-header";
+import { DetailGallery } from "@/components/tourist/detail-gallery";
+import { DetailCard, ReviewsCard } from "@/components/tourist/detail-card";
+import {
+  HotelRoomProvider,
+  RoomsCard,
+  HotelBookingCard,
+} from "@/components/tourist/hotel-rooms";
 
 export async function generateMetadata({
   params,
@@ -51,102 +52,91 @@ export default async function HotelDetailPage({
     include: { tourist: { select: { name: true } } },
   });
 
-  const gallery = [hotel.coverImageUrl, ...hotel.imageUrls].slice(0, 3);
-
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <nav className="mb-4 flex items-center gap-1.5 text-xs text-ink-muted">
-        <Link href="/" className="hover:text-ink">Home</Link>
-        <ChevronRight className="size-3" />
-        <Link href="/hotels" className="hover:text-ink">Stays</Link>
-        <ChevronRight className="size-3" />
-        <span className="text-ink-soft">{hotel.name}</span>
-      </nav>
+    <div className="mx-auto max-w-5xl px-6 py-6">
+      <DetailHeader
+        breadcrumb={{ label: "Stays", href: "/hotels" }}
+        title={hotel.name}
+        altitudeMeters={hotel.altitudeMeters}
+        meta={[
+          <span key="type">{hotel.propertyType === "HOMESTAY" ? "Homestay" : "Hotel"}</span>,
+          <span key="loc">
+            {hotel.city}, {hotel.state}
+          </span>,
+          ...(hotel.reviewCount > 0
+            ? [
+                <span key="rating" className="inline-flex items-center gap-1">
+                  <Star className="size-3 text-rating" fill="currentColor" strokeWidth={0} />
+                  {hotel.avgRating.toFixed(1)} ({hotel.reviewCount})
+                </span>,
+              ]
+            : []),
+        ]}
+      />
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl font-bold text-ink">{hotel.name}</h1>
-          <p className="mt-1.5 text-sm text-ink-soft">
-            {hotel.address}, {hotel.city}, {hotel.state}
-          </p>
-          <div className="mt-2">
-            <RatingStars rating={hotel.avgRating} reviewCount={hotel.reviewCount} />
+      <DetailGallery
+        images={[hotel.coverImageUrl, ...hotel.imageUrls]}
+        alt={hotel.name}
+        kind="hotel"
+      />
+
+      <HotelRoomProvider
+        rooms={hotel.rooms.map((r) => ({
+          id: r.id,
+          name: r.name,
+          description: r.description,
+          pricePerNight: r.pricePerNight,
+          capacity: r.capacity,
+          totalUnits: r.totalUnits,
+        }))}
+      >
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_308px] lg:items-start">
+          <div className="min-w-0 space-y-4">
+            <DetailCard title="About">
+              <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-ink-soft">
+                {hotel.description}
+              </p>
+            </DetailCard>
+
+            {hotel.amenities.length > 0 && (
+              <DetailCard title="Amenities">
+                <AmenityGrid amenities={hotel.amenities} />
+              </DetailCard>
+            )}
+
+            <RoomsCard />
+
+            {hotel.latitude != null && hotel.longitude != null && (
+              <DetailCard title="Location">
+                <LeafletMap lat={hotel.latitude} lng={hotel.longitude} label={hotel.name} />
+              </DetailCard>
+            )}
+
+            <ReviewsCard
+              reviews={reviews.map((r) => ({
+                id: r.id,
+                touristName: r.tourist.name,
+                rating: r.rating,
+                title: r.title,
+                comment: r.comment,
+                vendorReply: r.vendorReply,
+              }))}
+              vendorName={hotel.vendor.businessName}
+              emptyBody="Reviews appear here once guests complete their stay."
+            />
+          </div>
+
+          <div className="lg:sticky lg:top-24">
+            <HotelBookingCard
+              hotelId={hotel.id}
+              freeCancellationDays={hotel.freeCancellationDays}
+              vendorName={hotel.vendor.businessName}
+              vendorSlug={hotel.vendor.slug}
+              touristName={session?.user?.name ?? ""}
+            />
           </div>
         </div>
-        {hotel.altitudeMeters != null && <AltitudeChip meters={hotel.altitudeMeters} />}
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:grid-rows-2">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-card bg-sand sm:col-span-2 sm:row-span-2 sm:aspect-auto">
-          <ListingImage src={gallery[0]} alt={hotel.name} kind="hotel" sizes="(min-width: 640px) 66vw, 100vw" priority />
-        </div>
-        {gallery.slice(1).map((img, i) => (
-          <div key={i} className="relative hidden aspect-[16/10] overflow-hidden rounded-card bg-sand sm:block">
-            <ListingImage src={img} alt="" kind="hotel" sizes="33vw" />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-8 space-y-8">
-        <section>
-          <h2 className="mb-3 font-heading text-xl font-bold text-ink">About</h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-ink-soft">
-            {hotel.description}
-          </p>
-        </section>
-
-        <section>
-          <h2 className="mb-3 font-heading text-xl font-bold text-ink">Amenities</h2>
-          <AmenityGrid amenities={hotel.amenities} />
-        </section>
-
-        <HotelBookingSection
-          hotelId={hotel.id}
-          rooms={hotel.rooms.map((r) => ({
-            id: r.id,
-            name: r.name,
-            description: r.description,
-            pricePerNight: r.pricePerNight,
-            capacity: r.capacity,
-            totalUnits: r.totalUnits,
-          }))}
-          freeCancellationDays={hotel.freeCancellationDays}
-          vendorName={hotel.vendor.businessName}
-          vendorSlug={hotel.vendor.slug}
-          touristName={session?.user?.name ?? ""}
-        />
-
-        {hotel.latitude != null && hotel.longitude != null && (
-          <section>
-            <h2 className="mb-3 font-heading text-xl font-bold text-ink">Location</h2>
-            <LeafletMap lat={hotel.latitude} lng={hotel.longitude} label={hotel.name} />
-          </section>
-        )}
-
-        <section>
-          <h2 className="mb-3 font-heading text-xl font-bold text-ink">Reviews</h2>
-          {reviews.length > 0 ? (
-            <div className="divide-y divide-border-soft rounded-card border border-border bg-surface px-4">
-              {reviews.map((r) => (
-                <ReviewCard
-                  key={r.id}
-                  review={{
-                    id: r.id,
-                    touristName: r.tourist.name,
-                    rating: r.rating,
-                    title: r.title,
-                    comment: r.comment,
-                    vendorReply: r.vendorReply,
-                    vendorName: hotel.vendor.businessName,
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No reviews yet" body="Reviews appear here once tourists complete their stay." />
-          )}
-        </section>
-      </div>
+      </HotelRoomProvider>
     </div>
   );
 }
