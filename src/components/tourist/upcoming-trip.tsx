@@ -39,7 +39,12 @@ export async function UpcomingTrip() {
     where: {
       touristId: session.user.id,
       status: "CONFIRMED",
-      startDate: { gte: now, lte: horizon },
+      // Bound on endDate, not startDate: a trip that's already underway hasn't
+      // stopped being the one worth surfacing. Gating on startDate >= now hid
+      // it for the whole time the traveller was actually on it, and left the
+      // "Happening now" label below unreachable.
+      startDate: { lte: horizon },
+      endDate: { gte: now },
     },
     orderBy: { startDate: "asc" },
     include: {
