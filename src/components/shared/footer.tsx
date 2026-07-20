@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { PrayerFlags } from "@/components/shared/prayer-flags";
 import { Ridge } from "@/components/shared/ridge";
+import { LinkedInIcon, GitHubIcon } from "@/components/shared/brand-icons";
+import { SITE } from "@/lib/site";
 
 export function Footer() {
   return (
@@ -66,13 +69,90 @@ export function Footer() {
           </div>
         </div>
 
-        {/* bottom bar */}
-        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-border-soft pt-5 text-xs text-ink-muted sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} RiRoam · Roam the land of high passes.</p>
-          <p className="font-mono">Made at 3,524 m · Leh, Ladakh</p>
+        {/* contact row */}
+        <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-border-soft pt-5 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <ContactLink icon={LinkedInIcon} label="LinkedIn" href={SITE.linkedinUrl} />
+            <ContactLink icon={GitHubIcon} label="GitHub" href={SITE.githubUrl} />
+            <ContactLink
+              icon={Mail}
+              label="Contact us"
+              href={SITE.contactEmail ? `mailto:${SITE.contactEmail}` : null}
+            />
+          </div>
+          <p className="font-mono text-xs text-ink-muted">
+            Made at 3,524 m · Leh, Ladakh
+          </p>
+        </div>
+
+        {/* legal bar */}
+        <div className="mt-5 flex flex-col items-start justify-between gap-1.5 text-xs text-ink-muted sm:flex-row sm:items-center">
+          <p>
+            © {new Date().getFullYear()} RiRoam. All rights reserved.
+          </p>
+          <p>
+            A property of{" "}
+            {SITE.ownerUrl ? (
+              <a
+                href={SITE.ownerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-ink-soft transition-colors hover:text-pangong"
+              >
+                {SITE.owner}
+              </a>
+            ) : (
+              <span className="font-medium text-ink-soft">{SITE.owner}</span>
+            )}{" "}
+            · Designed &amp; developed in Ladakh.
+          </p>
         </div>
       </div>
     </footer>
+  );
+}
+
+/**
+ * Renders as a real link once its env var is set, and as inert muted text
+ * until then — a placeholder that reads as "not wired up yet" rather than as
+ * a link that silently goes nowhere.
+ */
+function ContactLink({
+  icon: Icon,
+  label,
+  href,
+}: {
+  // Widened from lucide's own type so the inlined brand glyphs fit too.
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href: string | null;
+}) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-control border px-2.5 py-1.5 text-xs font-medium transition-all duration-200";
+
+  if (!href) {
+    return (
+      <span
+        title={`${label} — coming soon`}
+        aria-disabled="true"
+        className={`${base} cursor-default border-border-soft text-ink-muted/70`}
+      >
+        <Icon className="size-3.5" />
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target={href.startsWith("mailto:") ? undefined : "_blank"}
+      rel="noreferrer"
+      className={`${base} border-border text-ink-soft shadow-card hover:-translate-y-0.5 hover:border-pangong/30 hover:text-pangong hover:shadow-card-hover`}
+    >
+      <Icon className="size-3.5" />
+      {label}
+    </a>
   );
 }
 
