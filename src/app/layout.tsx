@@ -27,13 +27,32 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const TITLE = "RiRoam — Roam the land of high passes";
+const DESCRIPTION =
+  "Book verified stays, tours, and rides across Ladakh. Ri (རི) means mountain — RiRoam is mountain roam.";
+
 export const metadata: Metadata = {
-  title: {
-    default: "RiRoam — Roam the land of high passes",
-    template: "%s · RiRoam",
+  // Resolves relative OG/twitter image paths to absolute URLs, which social
+  // crawlers require — without it a shared link renders as a bare URL.
+  metadataBase: new URL(APP_URL),
+  title: { default: TITLE, template: "%s · RiRoam" },
+  description: DESCRIPTION,
+  applicationName: "RiRoam",
+  openGraph: {
+    type: "website",
+    siteName: "RiRoam",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: APP_URL,
+    locale: "en_IN",
   },
-  description:
-    "Book verified stays, tours, and rides across Ladakh. Ri (རི) means mountain — RiRoam is mountain roam.",
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

@@ -64,6 +64,18 @@ async function main() {
     throw new Error("ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD must be set in .env");
   }
 
+  // This seed TRUNCATES every table before writing. That's what makes it
+  // repeatable in dev, and what would make it catastrophic against a live
+  // database — one stray `npm run db:seed` with production credentials loaded
+  // would delete every real booking. Refuse unless the caller has explicitly
+  // opted in.
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_DESTRUCTIVE_SEED !== "yes") {
+    throw new Error(
+      "Refusing to seed with NODE_ENV=production — this wipes all tables. " +
+        "Set ALLOW_DESTRUCTIVE_SEED=yes only if you are certain.",
+    );
+  }
+
   // ── Reset (FK-safe order) so the seed is repeatable ────────────────────────
   await prisma.bookingExtra.deleteMany();
   await prisma.payment.deleteMany();
