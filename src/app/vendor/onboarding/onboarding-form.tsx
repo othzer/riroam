@@ -86,15 +86,8 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
   }
 
   async function onSubmit(input: OnboardingInput) {
-    // Pressing Enter in any text field fires a native submit, which used to
-    // send the application straight off the first step — past Verification and
-    // the Review screen. Only the last step may actually submit; anywhere else
-    // Enter behaves like Continue.
-    if (step < STEPS.length - 1) {
-      await next();
-      return;
-    }
-
+    // Only ever reached from the last step — the form's onSubmit branches
+    // earlier steps into next() before handleSubmit runs.
     setPending(true);
     try {
       const res = await submitVendorOnboarding(input);
@@ -125,7 +118,23 @@ export function OnboardingForm({ isReapplying }: { isReapplying: boolean }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      // Enter in a text field fires a native submit. Branch here, BEFORE
+      // handleSubmit runs the whole schema: on an earlier step that would fail
+      // on fields the user hasn't reached yet (verificationDocUrl above all),
+      // so nothing advances and errors appear for inputs that aren't on screen.
+      // next() validates only the current step's fields; the last step is the
+      // only one that submits for real.
+      onSubmit={(e) => {
+        if (step < STEPS.length - 1) {
+          e.preventDefault();
+          void next();
+          return;
+        }
+        void handleSubmit(onSubmit)(e);
+      }}
+      noValidate
+    >
       {/* stepper */}
       <ol className="mb-8 flex items-center gap-2">
         {STEPS.map((label, i) => (
