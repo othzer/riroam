@@ -78,6 +78,16 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
+
+  /* elevation — cards rest on a whisper of ink and lift into a pangong-tinted
+     backlight on hover. Two layers each: a tight contact shadow that keeps the
+     edge crisp, and a wide soft one that reads as ambient light. */
+  --shadow-card:
+    0 1px 2px rgb(24 38 53 / 0.05), 0 4px 16px -2px rgb(24 38 53 / 0.06);
+  --shadow-card-hover:
+    0 2px 4px rgb(24 38 53 / 0.05), 0 16px 40px -8px rgb(13 110 143 / 0.22),
+    0 6px 20px -4px rgb(227 145 41 / 0.1);
+  --shadow-cta: 0 4px 16px -2px rgb(227 145 41 / 0.4);
 }
 
 :root {
