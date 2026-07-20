@@ -33,8 +33,8 @@ export function FileUpload({
       const url = await uploadToCloudinary(file, folder);
       onChange(url);
       toast.success("File uploaded");
-    } catch {
-      toast.error("Upload failed — try again");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed — try again");
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";

@@ -20,12 +20,47 @@ export const BUSINESS_TYPE_LABELS: Record<
   VEHICLE_RENTAL: "Vehicle rental",
 };
 
+/** Ladakh's two revenue districts. */
+export const LADAKH_DISTRICTS = ["Leh", "Kargil"] as const;
+
+/** Valleys/regions travellers actually search by, grouped by district. */
+export const LADAKH_REGIONS = [
+  "Leh",
+  "Nubra",
+  "Changthang",
+  "Sham",
+  "Aryan Valley",
+  "Kargil",
+  "Zanskar",
+  "Drass",
+  "Suru Valley",
+  "Wakha Mulbekh",
+] as const;
+
+export const REGION_DISTRICT: Record<
+  (typeof LADAKH_REGIONS)[number],
+  (typeof LADAKH_DISTRICTS)[number]
+> = {
+  Leh: "Leh",
+  Nubra: "Leh",
+  Changthang: "Leh",
+  Sham: "Leh",
+  "Aryan Valley": "Leh",
+  Kargil: "Kargil",
+  Zanskar: "Kargil",
+  Drass: "Kargil",
+  "Suru Valley": "Kargil",
+  "Wakha Mulbekh": "Kargil",
+};
+
 export const onboardingSchema = z.object({
   businessName: z.string().trim().min(2, "Business name is too short").max(80),
   businessType: z.enum(BUSINESS_TYPES),
   description: z.string().trim().max(600).optional().or(z.literal("")),
   phone: z.string().trim().min(7, "Enter a valid phone number").max(20),
-  city: z.string().trim().min(2, "Enter your city").max(60),
+  city: z.string().trim().min(2, "Enter your town or village").max(60),
+  district: z.enum(LADAKH_DISTRICTS),
+  region: z.enum(LADAKH_REGIONS),
   state: z.string().trim().min(2, "Enter your state").max(60),
   serviceAreas: z
     .array(z.string().trim().min(1))
@@ -33,7 +68,14 @@ export const onboardingSchema = z.object({
     .max(20),
   gstNumber: z.string().trim().max(20).optional().or(z.literal("")),
   verificationDocUrl: z.string().url("Upload your verification document"),
-});
+})
+  // The region select is filtered by district in the form, but the pair still
+  // has to hold on the server — a stale or hand-crafted submit could carry
+  // Zanskar under Leh.
+  .refine((v) => REGION_DISTRICT[v.region] === v.district, {
+    path: ["region"],
+    message: "That region isn't in the selected district",
+  });
 
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 

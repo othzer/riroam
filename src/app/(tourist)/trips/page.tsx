@@ -16,9 +16,13 @@ export default async function TripsPage() {
     include: {
       payment: { select: { status: true } },
       review: { select: { id: true } },
-      package: { select: { title: true, slug: true, coverImageUrl: true, freeCancellationDays: true } },
-      hotel: { select: { name: true, slug: true, coverImageUrl: true, freeCancellationDays: true } },
-      vehicle: { select: { title: true, coverImageUrl: true, freeCancellationDays: true } },
+      // isPublished: a vendor can't delete a listing that has bookings (the FK
+      // refuses it), but they CAN unpublish one. The detail pages filter on
+      // isPublished, so linking a trip at an unpublished listing would 404 the
+      // traveller out of their own booking.
+      package: { select: { title: true, slug: true, coverImageUrl: true, freeCancellationDays: true, isPublished: true } },
+      hotel: { select: { name: true, slug: true, coverImageUrl: true, freeCancellationDays: true, isPublished: true } },
+      vehicle: { select: { title: true, coverImageUrl: true, freeCancellationDays: true, isPublished: true } },
     },
   });
 
@@ -28,6 +32,7 @@ export default async function TripsPage() {
     let listingHref = "/";
     let listingKind: ListingKind = "package";
     let freeCancellationDays = 0;
+    let listingAvailable = false;
 
     if (b.package) {
       listingTitle = b.package.title;
@@ -35,18 +40,21 @@ export default async function TripsPage() {
       listingHref = `/packages/${b.package.slug}`;
       listingKind = "package";
       freeCancellationDays = b.package.freeCancellationDays;
+      listingAvailable = b.package.isPublished;
     } else if (b.hotel) {
       listingTitle = b.hotel.name;
       listingImage = b.hotel.coverImageUrl;
       listingHref = `/hotels/${b.hotel.slug}`;
       listingKind = "hotel";
       freeCancellationDays = b.hotel.freeCancellationDays;
+      listingAvailable = b.hotel.isPublished;
     } else if (b.vehicle && b.vehicleId) {
       listingTitle = b.vehicle.title;
       listingImage = b.vehicle.coverImageUrl;
       listingHref = `/vehicles/${b.vehicleId}`;
       listingKind = "vehicle";
       freeCancellationDays = b.vehicle.freeCancellationDays;
+      listingAvailable = b.vehicle.isPublished;
     }
 
     return {
@@ -64,6 +72,7 @@ export default async function TripsPage() {
       listingImage,
       listingHref,
       listingKind,
+      listingAvailable,
     };
   });
 

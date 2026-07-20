@@ -17,7 +17,17 @@ export async function uploadToCloudinary(
     `https://api.cloudinary.com/v1_1/${params.cloudName}/auto/upload`,
     { method: "POST", body: form },
   );
-  if (!res.ok) throw new Error("upload failed");
+  if (!res.ok) {
+    // Cloudinary explains itself in the body ("Invalid cloud_name", "Invalid
+    // signature", file-too-large…). Swallowing it turned every one of those
+    // into an indistinguishable "try again", which is unactionable for a
+    // misconfiguration that retrying can never fix.
+    const detail = await res
+      .json()
+      .then((b: { error?: { message?: string } }) => b?.error?.message)
+      .catch(() => undefined);
+    throw new Error(detail || `Upload failed (${res.status})`);
+  }
 
   const data = (await res.json()) as { secure_url: string };
   return data.secure_url;
