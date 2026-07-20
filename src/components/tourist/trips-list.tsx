@@ -97,7 +97,7 @@ function TripCard({ trip }: { trip: Trip }) {
   }).canCancel;
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-4 shadow-card">
       <div className="flex gap-4">
         <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-control bg-sand">
           <ListingImage src={trip.listingImage} alt="" kind={trip.listingKind} sizes="96px" />

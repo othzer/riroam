@@ -13,7 +13,7 @@ export function DetailCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-card border border-border bg-surface p-4 ${className ?? ""}`}>
+    <div className={`rounded-card border border-border bg-surface p-4 shadow-card ${className ?? ""}`}>
       {title && (
         <h2 className="mb-2 font-heading text-[15px] font-bold text-ink">{title}</h2>
       )}
