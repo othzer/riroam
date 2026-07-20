@@ -59,7 +59,7 @@ export function ExtrasCard() {
   if (extras.length === 0) return null;
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-4 shadow-card">
       <h2 className="mb-1 font-heading text-[15px] font-bold text-ink">Add extras</h2>
       {extras.map((e, i) => {
         const on = selected.has(e.id);
@@ -169,7 +169,7 @@ export function BookingCard({
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-4 shadow-card">
       <div className="flex items-baseline gap-1.5">
         <span className="font-heading text-[20px] font-extrabold text-ink">
           {formatINR(pricePerPerson)}
