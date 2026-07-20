@@ -9,7 +9,19 @@ import { sendBookingConfirmedEmail, sendNewBookingReceivedEmail } from "@/lib/ma
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-razorpay-signature");
-  if (!signature || !verifyWebhookSignature(rawBody, signature)) {
+
+  // verifyWebhookSignature throws when RAZORPAY_WEBHOOK_SECRET is unset.
+  // Catching it turns a stack trace into a named cause, and keeps the 5xx —
+  // a misconfigured secret is our fault, so Razorpay should retry once it's
+  // fixed rather than treat the delivery as permanently rejected.
+  let valid = false;
+  try {
+    valid = !!signature && verifyWebhookSignature(rawBody, signature);
+  } catch (err) {
+    console.error("[razorpay webhook] cannot verify signature:", err);
+    return NextResponse.json({ error: "webhook not configured" }, { status: 500 });
+  }
+  if (!valid) {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }
 
