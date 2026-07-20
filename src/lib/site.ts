@@ -8,7 +8,7 @@
  */
 export const SITE = {
   /** Legal owner shown in the footer's copyright line. */
-  owner: "OthzrLabs",
+  owner: "OtzrLabs",
   ownerUrl: process.env.NEXT_PUBLIC_OWNER_URL || null,
   linkedinUrl: process.env.NEXT_PUBLIC_LINKEDIN_URL || null,
   githubUrl: process.env.NEXT_PUBLIC_GITHUB_URL || null,
