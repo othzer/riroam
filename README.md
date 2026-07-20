@@ -1,132 +1,329 @@
+<div align="center">
+
+<img src="public/logo-mark.svg" width="100"/>
+
 # RiRoam
-
-**Roam the land of high passes.** RiRoam is a Ladakh-first travel marketplace —
-book verified tour packages, hotels & homestays, and taxis & bikes, with a
-data-grounded AI trip planner.
-
 > **ri (རི)** means _mountain_ in Ladakhi/Tibetan — RiRoam is _mountain roam_.
 > La-dags ≈ _land of high passes_.
 
-Altitude is a first-class element of the product: every listing carries a
-mono-font altitude chip, and package itineraries render as a day-by-day
-elevation profile with acclimatization days shaded.
+### **Discover. Plan. Experience.**
 
-## What it does
+*A modern travel marketplace connecting travelers with verified local experiences.*
 
-- **Three-role platform** — tourists browse and book; vendors list packages,
-  hotels and vehicles and manage bookings; admins approve vendors and moderate.
-- **Real booking engine** — availability with overlap-aware date math, a
-  row-locked transaction that prevents double-booking, a 20-minute payment hold
-  with lazy expiry, and Razorpay order creation + HMAC verification + webhook.
-- **Server-computed money** — prices and refunds are always recomputed on the
-  server (integer paise, never floats); extras are price-snapshotted at booking
-  time so later price changes don't rewrite history.
-- **Grounded AI planner** — retrieval over real listings → schema-constrained
-  Gemini generation → validation that drops any hallucinated id, so every
-  suggested day links to a real, bookable listing.
-- **Reviews from completed trips only** — enforced by a unique constraint on the
-  booking, with denormalized ratings kept correct in the same transaction.
+<p align="center">
+  <a href="https://riroam.vercel.app">
+    <img src="https://img.shields.io/badge/🌐_Live_Demo-riroam.vercel.app-2563EB?style=for-the-badge">
+  </a>
+</p>
 
-## Architecture
+<p align="center">
 
-```mermaid
-flowchart TD
-  subgraph Client
-    B[Browser · React Server Components]
-  end
-  subgraph Next["Next.js 16 (App Router)"]
-    RSC[Server Components<br/>read via Prisma]
-    SA[Server Actions<br/>mutations, Zod-validated]
-    RH[Route Handlers<br/>webhook · cron · auth]
-    MW[proxy.ts<br/>coarse role gating]
-  end
-  DB[(PostgreSQL · Neon)]
-  RZP[Razorpay]
-  GEM[Gemini Flash]
-  CLD[Cloudinary]
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38BDF8?style=for-the-badge&logo=tailwindcss)
 
-  B --> MW --> RSC
-  B --> SA
-  RSC --> DB
-  SA --> DB
-  SA -->|order · verify · refund| RZP
-  SA -->|retrieval-grounded plan| GEM
-  B -->|signed direct upload| CLD
-  RZP -->|payment.captured| RH
-  RH --> DB
+</p>
+
+**✨ Live Website**
+
+## **https://riroam.vercel.app**
+
+</div>
+
+---
+
+# 📖 About
+
+**RiRoam** is a modern full-stack travel marketplace built to simplify the way people discover and book travel experiences.
+
+Instead of jumping between different websites for hotels, tour operators, taxis, bike rentals, and travel packages, RiRoam brings everything together into one intuitive platform.
+
+Whether you're planning a weekend getaway or a multi-day adventure, RiRoam helps travelers discover verified local vendors, compare services, make secure bookings, and even generate personalized itineraries using AI.
+
+For vendors, it provides a powerful dashboard to manage listings, bookings, payments, and customer interactions—all from one place.
+
+---
+
+# ✨ Features
+
+## 🧳 Discover Local Experiences
+
+Explore a wide range of travel services including
+
+- 🏨 Hotels & Homestays
+- 🏕 Tour Packages
+- 🚗 Vehicle Rentals
+- 🚌 Local Transport
+- 🎒 Adventure Activities
+- 🗺 Local Experiences
+
+---
+
+## 🤖 AI Trip Planner
+
+Planning a trip can be overwhelming.
+
+RiRoam's AI assistant creates personalized travel plans based on
+
+- Destination
+- Trip duration
+- Budget
+- Interests
+- Available listings
+
+Get a complete itinerary within seconds.
+
+---
+
+## 🏪 Vendor Marketplace
+
+Verified vendors can
+
+- Create listings
+- Upload images
+- Manage availability
+- Accept bookings
+- Track earnings
+- Respond to customers
+
+---
+
+## 📅 Smart Booking System
+
+A complete booking workflow featuring
+
+- Availability management
+- Booking confirmations
+- Reservation tracking
+- Booking history
+- Status updates
+
+---
+
+## 💳 Secure Payments
+
+Integrated payment system with
+
+- Razorpay Checkout
+- Secure verification
+- Order tracking
+- Booking receipts
+- Payment history
+
+---
+
+## ⭐ Ratings & Reviews
+
+Verified travelers can
+
+- Leave reviews
+- Rate services
+- Share experiences
+- Help future travelers
+
+---
+
+## 👥 Multi-Role Authentication
+
+RiRoam supports multiple user roles
+
+### 👤 Traveler
+
+- Browse listings
+- Book experiences
+- Manage bookings
+- Review vendors
+
+### 🏪 Vendor
+
+- Create services
+- Manage inventory
+- Receive bookings
+- Track performance
+
+### 🛡 Administrator
+
+- Verify vendors
+- Moderate listings
+- Manage users
+- Monitor platform activity
+
+---
+
+## ☁ Cloud Media Storage
+
+Images are securely stored and optimized using Cloudinary for fast loading and reliable delivery.
+
+---
+
+## 📱 Fully Responsive
+
+Optimized for
+
+- Desktop
+- Laptop
+- Tablet
+- Mobile
+
+Enjoy a seamless experience across every device.
+
+---
+
+# 🚀 Why RiRoam?
+
+Unlike traditional travel websites, RiRoam combines discovery, booking, vendor management, and intelligent planning into a single platform.
+
+✔ Beautiful modern interface
+
+✔ AI-powered itinerary generation
+
+✔ Secure online payments
+
+✔ Verified vendors
+
+✔ Responsive design
+
+✔ Fast server-side rendering
+
+✔ Modern full-stack architecture
+
+---
+
+# 🛠 Tech Stack
+
+| Category | Technology |
+|------------|------------|
+| Framework | Next.js 16 |
+| Language | TypeScript |
+| Frontend | React 19 |
+| Styling | Tailwind CSS v4 |
+| UI Components | shadcn/ui |
+| Database | PostgreSQL (Neon) |
+| ORM | Prisma |
+| Authentication | Auth.js |
+| Payments | Razorpay |
+| AI | Google Gemini |
+| Image Storage | Cloudinary |
+| Forms | React Hook Form |
+| Validation | Zod |
+| Emails | Resend |
+| Deployment | Vercel |
+
+---
+
+# 📂 Project Structure
+
+```
+RiRoam/
+
+├── app/
+├── actions/
+├── components/
+├── hooks/
+├── lib/
+├── prisma/
+├── public/
+├── types/
+├── middleware.ts
+└── package.json
 ```
 
-Authorization is defense-in-depth: `proxy.ts` does fast JWT role gating for UX,
-but every mutation and protected layout re-checks the database (`requireVendor`
-/ `requireAdmin`), so a stale token is never a security boundary.
+---
 
-## Stack
+# 📸 Screenshots
 
-| Layer      | Choice                                             |
-| ---------- | -------------------------------------------------- |
-| Framework  | Next.js 16 (App Router) + TypeScript               |
-| Database   | PostgreSQL (Neon) + Prisma 6                        |
-| Auth       | Auth.js v5 — Credentials + Google, JWT sessions    |
-| UI         | Tailwind CSS v4 + shadcn/ui                         |
-| Validation | Zod + react-hook-form                              |
-| Payments   | Razorpay (test mode)                               |
-| Uploads    | Cloudinary                                          |
-| AI         | Google Gemini (Flash) via `@google/genai`          |
-| Email      | Resend + React Email                               |
-| Maps       | Leaflet + OpenStreetMap                            |
+> Replace these with actual project screenshots.
 
-## Getting started
+| Home | Explore |
+|------|----------|
+| Landing Page | Listings |
 
-```bash
-# 1. Install
-npm install
+| AI Planner | Booking |
+|-------------|----------|
+| Personalized Itinerary | Reservation Flow |
 
-# 2. Configure — copy the example and fill in your values
-cp .env.example .env
+| Vendor Dashboard | Admin Dashboard |
+|-----------------|----------------|
+| Manage Listings | Platform Management |
 
-# 3. Apply the schema to your database
-npm run db:migrate
+---
 
-# 4. Seed demo data (admin from .env + vendors, listings, bookings, reviews)
-npm run db:seed
+# 🌟 Highlights
 
-# 5. Run
-npm run dev
-```
+- 🌍 Modern Travel Marketplace
+- 🤖 AI Trip Planner
+- 🏨 Hotel & Package Booking
+- 🚗 Vehicle Rentals
+- 💳 Secure Razorpay Payments
+- ☁ Cloudinary Image Uploads
+- 🔐 Role-Based Authentication
+- 📊 Vendor Dashboard
+- 🛡 Admin Dashboard
+- ⭐ Reviews & Ratings
+- 📱 Fully Responsive UI
+- ⚡ Server Actions
+- 🚀 Optimized Performance
 
-Open [http://localhost:3000](http://localhost:3000).
+---
 
-### Demo accounts
+# 🛣 Roadmap
 
-The seed populates a full Ladakh dataset — four vendors (one left pending so the
-approval queue has content), six packages with itineraries, four stays, six
-vehicles, and completed bookings with reviews.
+- [ ] Wishlist
+- [ ] Real-time Chat
+- [ ] Google Maps Integration
+- [ ] Mobile Application
+- [ ] Booking Calendar Sync
+- [ ] AI Travel Assistant
+- [ ] Offline Support
+- [ ] Multi-language Support
+- [ ] Personalized Recommendations
 
-| Role   | Email                     | Password        |
-| ------ | ------------------------- | --------------- |
-| Admin  | _from `ADMIN_SEED_EMAIL`_ | _your value_    |
-| Vendor | `julley@example.com`      | `riroam-vendor` |
-| Tourist| `ankit@example.com`       | `riroam-demo`   |
+---
 
-## Scripts
+# 💡 Future Vision
 
-| Script                | Does                                    |
-| --------------------- | --------------------------------------- |
-| `npm run dev`         | Start the dev server                    |
-| `npm run build`       | Production build                        |
-| `npm run db:migrate`  | Create & apply a Prisma migration       |
-| `npm run db:seed`     | Seed the database                       |
-| `npm run db:studio`   | Open Prisma Studio                      |
-| `npm run db:reset`    | Drop, re-migrate, and re-seed           |
+RiRoam aims to become more than a booking platform.
 
-## Project layout
+The vision is to build a complete travel ecosystem where travelers can discover destinations, connect with local communities, receive intelligent recommendations, and plan entire journeys from a single platform.
 
-```
-prisma/           schema + migrations + seed
-src/
-  app/            routes (App Router)
-  actions/        server actions, one file per domain
-  components/     ui · shared · tourist · vendor · admin
-  lib/            auth, prisma, validators, and domain helpers
-  types/          shared types + module augmentation
-```
+---
+
+# ⭐ Show Your Support
+
+If you found this project interesting,
+
+please consider giving it a ⭐ on GitHub.
+
+It motivates future development and helps others discover the project.
+
+---
+
+# 👨‍💻 Author
+
+## **Stanzin Othzer**
+
+Built with ❤️ using
+
+**Next.js • React • TypeScript • Prisma • PostgreSQL • Razorpay • Gemini AI • Cloudinary • Tailwind CSS**
+
+---
+
+# License
+
+Proprietary — © OtzrLabs. All rights reserved.
+
+---
+
+
+<div align="center">
+
+## 🌍 RiRoam
+
+### **Travel smarter. Explore further. Experience more.**
+
+**Made with ❤️ for travelers and local communities.**
+
+</div>
