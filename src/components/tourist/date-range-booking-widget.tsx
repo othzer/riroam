@@ -108,7 +108,7 @@ export function DateRangeBookingWidget({
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-4 shadow-card">
       <div className="flex items-baseline gap-1.5">
         <span className="font-heading text-[20px] font-extrabold text-ink">
           {formatINR(pricePerUnit)}

@@ -17,7 +17,7 @@ export function ItineraryCard({ days }: { days: Day[] }) {
   const dayRange = acclimatizeDays === 1 ? "Day 1" : `Days 1–${acclimatizeDays}`;
 
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-4 shadow-card">
       <div className="flex items-baseline justify-between">
         <h2 className="font-heading text-[15px] font-bold text-ink">
           Day-by-day elevation
